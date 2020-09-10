@@ -21,9 +21,11 @@ package org.apache.zookeeper.test;
 import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.WatchedEvent;
@@ -49,10 +51,12 @@ public class RecoveryTest extends ZKTestCase implements Watcher {
     private volatile CountDownLatch startSignal;
 
     /**
+     * 验证服务器在挂了之后,重启之后,客户端是否会自动重连.注意:这需要服务在超时时间内重启.
+     * <p>
      * Verify that if a server goes down that clients will reconnect
      * automatically after the server is restarted. Note that this requires the
      * server to restart within the connection timeout period.
-     *
+     * <p>
      * Also note that the client latches are used to eliminate any chance
      * of spurrious connectionloss exceptions on the read ops. Specifically
      * a sync operation will throw this exception if the server goes down
@@ -79,6 +83,7 @@ public class RecoveryTest extends ZKTestCase implements Watcher {
 
             startSignal = new CountDownLatch(1);
             ZooKeeper zk = new ZooKeeper(HOSTPORT, CONNECTION_TIMEOUT, this);
+            //超时等待
             startSignal.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
             assertTrue("count == 0", startSignal.getCount() == 0);
             String path;
@@ -92,12 +97,13 @@ public class RecoveryTest extends ZKTestCase implements Watcher {
                     for (int k = 0; k < 20; k++) {
                         String subsubpath = subpath + "/" + k;
                         zk.create(subsubpath, (subsubpath
-                                                       + "!").getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                                + "!").getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     }
                 }
             }
-
+            //
             f.shutdown();
+            //关闭服务器实例
             zks.shutdown();
             assertTrue("waiting for server down", ClientBase.waitForServerDown(HOSTPORT, CONNECTION_TIMEOUT));
 

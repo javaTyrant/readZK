@@ -34,6 +34,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -43,6 +44,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.client.HostProvider;
 import org.apache.zookeeper.client.StaticHostProvider;
@@ -55,6 +57,7 @@ public class StaticHostProviderTest extends ZKTestCase {
 
     @Test
     public void testNextGoesRound() {
+        //创造两个address
         HostProvider hostProvider = getHostProvider((byte) 2);
         InetSocketAddress first = hostProvider.next(0);
         assertTrue(first != null);
@@ -483,7 +486,7 @@ public class StaticHostProviderTest extends ZKTestCase {
     }
 
     private Collection<InetSocketAddress> getServerAddresses(byte size) {
-        ArrayList<InetSocketAddress> list = new ArrayList<InetSocketAddress>(size);
+        ArrayList<InetSocketAddress> list = new ArrayList<>(size);
         while (size > 0) {
             try {
                 list.add(new InetSocketAddress(InetAddress.getByAddress(new byte[]{10, 10, 10, size}), 1234 + size));
@@ -872,10 +875,10 @@ public class StaticHostProviderTest extends ZKTestCase {
         InetSocketAddress next = hostProvider.next(0);
         next = hostProvider.next(0);
         assertTrue("Different number of addresses in the list: "
-                           + hostProvider.size()
-                           + " (after), "
-                           + sizeBefore
-                           + " (before)", hostProvider.size() == sizeBefore);
+                + hostProvider.size()
+                + " (after), "
+                + sizeBefore
+                + " (before)", hostProvider.size() == sizeBefore);
     }
 
     private StaticHostProvider getHostProviderUnresolved(byte size) {
@@ -899,7 +902,7 @@ public class StaticHostProviderTest extends ZKTestCase {
         ArrayList<InetSocketAddress> list = new ArrayList<>(size);
         while (size > 0) {
             list.add(InetSocketAddress.createUnresolved(String.format("testhost-%d.testdomain.com", size), 1234
-                                                                                                                   + size));
+                    + size));
             --size;
         }
         System.out.println(Arrays.toString(list.toArray()));

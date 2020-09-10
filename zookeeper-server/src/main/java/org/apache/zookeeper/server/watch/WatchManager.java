@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -42,9 +43,10 @@ public class WatchManager implements IWatchManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(WatchManager.class);
 
-    private final Map<String, Set<Watcher>> watchTable = new HashMap<String, Set<Watcher>>();
-
-    private final Map<Watcher, Set<String>> watch2Paths = new HashMap<Watcher, Set<String>>();
+    //key是什么呢?path
+    private final Map<String, Set<Watcher>> watchTable = new HashMap<>();
+    //一个water监控一个set的path?
+    private final Map<Watcher, Set<String>> watch2Paths = new HashMap<>();
 
     @Override
     public synchronized int size() {
@@ -65,23 +67,20 @@ public class WatchManager implements IWatchManager {
             LOG.debug("Ignoring addWatch with closed cnxn");
             return false;
         }
-
-        Set<Watcher> list = watchTable.get(path);
-        if (list == null) {
-            // don't waste memory if there are few watches on a node
-            // rehash when the 4th entry is added, doubling size thereafter
-            // seems like a good compromise
-            list = new HashSet<Watcher>(4);
-            watchTable.put(path, list);
-        }
+        //        if (list == null) {
+        //            list = new HashSet<Watcher>(4);
+        //            watchTable.put(path, list);
+        //        }
+        //        list.add(watcher);
+        //        Set<String> paths = watch2Paths.get(watcher);
+        //        if (paths == null) {
+        //            paths = new HashSet<String>();
+        //            watch2Paths.put(watcher, paths);
+        //        }
+        Set<Watcher> list = watchTable.computeIfAbsent(path, k -> new HashSet<>(4));
         list.add(watcher);
-
-        Set<String> paths = watch2Paths.get(watcher);
-        if (paths == null) {
-            // cnxns typically have many watches, so use default cap here
-            paths = new HashSet<String>();
-            watch2Paths.put(watcher, paths);
-        }
+        // cnxns typically have many watches, so use default cap here
+        Set<String> paths = watch2Paths.computeIfAbsent(watcher, k -> new HashSet<>());
         return paths.add(path);
     }
 
@@ -111,6 +110,7 @@ public class WatchManager implements IWatchManager {
     public WatcherOrBitSet triggerWatch(String path, EventType type, WatcherOrBitSet supress) {
         WatchedEvent e = new WatchedEvent(type, KeeperState.SyncConnected, path);
         Set<Watcher> watchers;
+        //加锁
         synchronized (this) {
             watchers = watchTable.remove(path);
             if (watchers == null || watchers.isEmpty()) {
@@ -134,24 +134,24 @@ public class WatchManager implements IWatchManager {
         }
 
         switch (type) {
-        case NodeCreated:
-            ServerMetrics.getMetrics().NODE_CREATED_WATCHER.add(watchers.size());
-            break;
+            case NodeCreated:
+                ServerMetrics.getMetrics().NODE_CREATED_WATCHER.add(watchers.size());
+                break;
 
-        case NodeDeleted:
-            ServerMetrics.getMetrics().NODE_DELETED_WATCHER.add(watchers.size());
-            break;
+            case NodeDeleted:
+                ServerMetrics.getMetrics().NODE_DELETED_WATCHER.add(watchers.size());
+                break;
 
-        case NodeDataChanged:
-            ServerMetrics.getMetrics().NODE_CHANGED_WATCHER.add(watchers.size());
-            break;
+            case NodeDataChanged:
+                ServerMetrics.getMetrics().NODE_CHANGED_WATCHER.add(watchers.size());
+                break;
 
-        case NodeChildrenChanged:
-            ServerMetrics.getMetrics().NODE_CHILDREN_WATCHER.add(watchers.size());
-            break;
-        default:
-            // Other types not logged.
-            break;
+            case NodeChildrenChanged:
+                ServerMetrics.getMetrics().NODE_CHILDREN_WATCHER.add(watchers.size());
+                break;
+            default:
+                // Other types not logged.
+                break;
         }
 
         return new WatcherOrBitSet(watchers);
@@ -222,10 +222,10 @@ public class WatchManager implements IWatchManager {
 
     @Override
     public synchronized WatchesReport getWatches() {
-        Map<Long, Set<String>> id2paths = new HashMap<Long, Set<String>>();
+        Map<Long, Set<String>> id2paths = new HashMap<>();
         for (Entry<Watcher, Set<String>> e : watch2Paths.entrySet()) {
             Long id = ((ServerCnxn) e.getKey()).getSessionId();
-            Set<String> paths = new HashSet<String>(e.getValue());
+            Set<String> paths = new HashSet<>(e.getValue());
             id2paths.put(id, paths);
         }
         return new WatchesReport(id2paths);
@@ -233,9 +233,9 @@ public class WatchManager implements IWatchManager {
 
     @Override
     public synchronized WatchesPathReport getWatchesByPath() {
-        Map<String, Set<Long>> path2ids = new HashMap<String, Set<Long>>();
+        Map<String, Set<Long>> path2ids = new HashMap<>();
         for (Entry<String, Set<Watcher>> e : watchTable.entrySet()) {
-            Set<Long> ids = new HashSet<Long>(e.getValue().size());
+            Set<Long> ids = new HashSet<>(e.getValue().size());
             path2ids.put(e.getKey(), ids);
             for (Watcher watcher : e.getValue()) {
                 ids.add(((ServerCnxn) watcher).getSessionId());

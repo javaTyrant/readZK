@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.management.JMException;
+
 import org.apache.jute.Record;
 import org.apache.zookeeper.jmx.MBeanRegistry;
 import org.apache.zookeeper.metrics.MetricsContext;
@@ -38,26 +39,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * spawned off:衍生出
  * Just like the standard ZooKeeperServer. We just replace the request
  * processors: FollowerRequestProcessor -&gt; CommitProcessor -&gt;
  * FinalRequestProcessor
- *
  * A SyncRequestProcessor is also spawned off to log proposals from the leader.
+ * 就像标准zkserver一样,我们仅仅是替换了request处理器:
+ * FollowerRequestProcessor->CommitProcessor->FinalRequestProcessor
  */
 public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
 
     private static final Logger LOG = LoggerFactory.getLogger(FollowerZooKeeperServer.class);
 
-    /*
+    /**
      * Pending sync requests
-     */ ConcurrentLinkedQueue<Request> pendingSyncs;
+     */
+    ConcurrentLinkedQueue<Request> pendingSyncs;
 
     /**
-     * @throws IOException
+     * @throws IOException IOException
      */
     FollowerZooKeeperServer(FileTxnSnapLog logFactory, QuorumPeer self, ZKDatabase zkDb) throws IOException {
         super(logFactory, self.tickTime, self.minSessionTimeout, self.maxSessionTimeout, self.clientPortListenBacklog, zkDb, self);
-        this.pendingSyncs = new ConcurrentLinkedQueue<Request>();
+        this.pendingSyncs = new ConcurrentLinkedQueue<>();
     }
 
     public Follower getFollower() {
@@ -75,7 +79,10 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         syncProcessor.start();
     }
 
-    LinkedBlockingQueue<Request> pendingTxns = new LinkedBlockingQueue<Request>();
+    /**
+     * 待处理的事务请求
+     */
+    LinkedBlockingQueue<Request> pendingTxns = new LinkedBlockingQueue<>();
 
     public void logRequest(TxnHeader hdr, Record txn) {
         Request request = new Request(hdr.getClientId(), hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
@@ -89,6 +96,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
      * When a COMMIT message is received, eventually this method is called,
      * which matches up the zxid from the COMMIT with (hopefully) the head of
      * the pendingTxns queue and hands it to the commitProcessor to commit.
+     *
      * @param zxid - must correspond to the head of pendingTxns if it exists
      */
     public void commit(long zxid) {
@@ -99,7 +107,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         long firstElementZxid = pendingTxns.element().zxid;
         if (firstElementZxid != zxid) {
             LOG.error("Committing zxid 0x" + Long.toHexString(zxid)
-                      + " but next pending txn 0x" + Long.toHexString(firstElementZxid));
+                    + " but next pending txn 0x" + Long.toHexString(firstElementZxid));
             System.exit(ExitCode.UNMATCHED_TXN_COMMIT.getValue());
         }
         Request request = pendingTxns.remove();
@@ -124,8 +132,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
     @Override
     public int getGlobalOutstandingLimit() {
         int divisor = self.getQuorumSize() > 2 ? self.getQuorumSize() - 1 : 1;
-        int globalOutstandingLimit = super.getGlobalOutstandingLimit() / divisor;
-        return globalOutstandingLimit;
+        return super.getGlobalOutstandingLimit() / divisor;
     }
 
     @Override

@@ -25,6 +25,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.zookeeper.common.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +36,11 @@ import org.slf4j.LoggerFactory;
  * threads, which it does by creating N separate single thread ExecutorServices,
  * or non-assignable threads, which it does by creating a single N-thread
  * ExecutorService.
- *   - NIOServerCnxnFactory uses a non-assignable WorkerService because the
- *     socket IO requests are order independent and allowing the
- *     ExecutorService to handle thread assignment gives optimal performance.
- *   - CommitProcessor uses an assignable WorkerService because requests for
- *     a given session must be processed in order.
+ * - NIOServerCnxnFactory uses a non-assignable WorkerService because the
+ * socket IO requests are order independent and allowing the
+ * ExecutorService to handle thread assignment gives optimal performance.
+ * - CommitProcessor uses an assignable WorkerService because requests for
+ * a given session must be processed in order.
  * ExecutorService provides queue management and thread restarting, so it's
  * useful even with a single thread.
  */
@@ -47,22 +48,23 @@ public class WorkerService {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkerService.class);
 
-    private final ArrayList<ExecutorService> workers = new ArrayList<ExecutorService>();
-
+    private final ArrayList<ExecutorService> workers = new ArrayList<>();
+    //
     private final String threadNamePrefix;
-    private int numWorkerThreads;
-    private boolean threadsAreAssignable;
-    private long shutdownTimeoutMS = 5000;
-
+    //
+    private final int numWorkerThreads;
+    //
+    private final boolean threadsAreAssignable;
+    //
     private volatile boolean stopped = true;
 
     /**
-     * @param name                  worker threads are named &lt;name&gt;Thread-##
-     * @param numThreads            number of worker threads (0 - N)
-     *                              If 0, scheduled work is run immediately by
-     *                              the calling thread.
-     * @param useAssignableThreads  whether the worker threads should be
-     *                              individually assignable or not
+     * @param name                 worker threads are named &lt;name&gt;Thread-##
+     * @param numThreads           number of worker threads (0 - N)
+     *                             If 0, scheduled work is run immediately by
+     *                             the calling thread.
+     * @param useAssignableThreads whether the worker threads should be
+     *                             individually assignable or not
      */
     public WorkerService(String name, int numThreads, boolean useAssignableThreads) {
         this.threadNamePrefix = (name == null ? "" : name) + "Thread";

@@ -26,6 +26,7 @@ import java.text.MessageFormat;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.jute.BinaryInputArchive;
 import org.apache.zookeeper.ClientCnxn.Packet;
 import org.apache.zookeeper.client.ZKClientConfig;
@@ -39,10 +40,9 @@ import org.slf4j.LoggerFactory;
 /**
  * A ClientCnxnSocket does the lower level communication with a socket
  * implementation.
- *
+ * <p>
  * This code has been moved out of ClientCnxn so that a Netty implementation can
  * be provided as an alternative to the NIO socket code.
- *
  */
 abstract class ClientCnxnSocket {
 
@@ -66,6 +66,7 @@ abstract class ClientCnxnSocket {
     protected long lastSend;
     protected long now;
     protected ClientCnxn.SendThread sendThread;
+    //看看两个实现类是如何使用这个类的
     protected LinkedBlockingDeque<Packet> outgoingQueue;
     protected ZKClientConfig clientConfig;
     private int packetLen = ZKClientConfig.CLIENT_MAX_PACKET_LENGTH_DEFAULT;
@@ -173,6 +174,7 @@ abstract class ClientCnxnSocket {
 
     /**
      * new packets are added to outgoingQueue.
+     * 新的数据包被添加到outgoingQueue
      */
     abstract void packetAdded();
 
@@ -198,17 +200,17 @@ abstract class ClientCnxnSocket {
      * - write outgoing queue packets.
      * - update relevant timestamp.
      *
-     * @param waitTimeOut timeout in blocking wait. Unit in MilliSecond.
+     * @param waitTimeOut  timeout in blocking wait. Unit in MilliSecond.
      * @param pendingQueue These are the packets that have been sent and
      *                     are waiting for a response.
      * @param cnxn
-     * @throws IOException
-     * @throws InterruptedException
+     * @throws IOException          ioexception
+     * @throws InterruptedException interruptedException
      */
     abstract void doTransport(
-        int waitTimeOut,
-        Queue<Packet> pendingQueue,
-        ClientCnxn cnxn) throws IOException, InterruptedException;
+            int waitTimeOut,
+            Queue<Packet> pendingQueue,
+            ClientCnxn cnxn) throws IOException, InterruptedException;
 
     /**
      * Close the socket.
@@ -231,14 +233,14 @@ abstract class ClientCnxnSocket {
     protected void initProperties() throws IOException {
         try {
             packetLen = clientConfig.getInt(
-                ZKConfig.JUTE_MAXBUFFER,
-                ZKClientConfig.CLIENT_MAX_PACKET_LENGTH_DEFAULT);
+                    ZKConfig.JUTE_MAXBUFFER,
+                    ZKClientConfig.CLIENT_MAX_PACKET_LENGTH_DEFAULT);
             LOG.info("{} value is {} Bytes", ZKConfig.JUTE_MAXBUFFER, packetLen);
         } catch (NumberFormatException e) {
             String msg = MessageFormat.format(
-                "Configured value {0} for property {1} can not be parsed to int",
-                clientConfig.getProperty(ZKConfig.JUTE_MAXBUFFER),
-                ZKConfig.JUTE_MAXBUFFER);
+                    "Configured value {0} for property {1} can not be parsed to int",
+                    clientConfig.getProperty(ZKConfig.JUTE_MAXBUFFER),
+                    ZKConfig.JUTE_MAXBUFFER);
             LOG.error(msg);
             throw new IOException(msg);
         }

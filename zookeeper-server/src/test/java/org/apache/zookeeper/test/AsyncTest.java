@@ -20,8 +20,10 @@ package org.apache.zookeeper.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+
 import java.util.LinkedList;
 import java.util.List;
+
 import org.apache.zookeeper.AsyncCallback.DataCallback;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
@@ -42,7 +44,7 @@ public class AsyncTest extends ZKTestCase implements StringCallback, VoidCallbac
 
     private static final Logger LOG = LoggerFactory.getLogger(AsyncTest.class);
 
-    private QuorumBase qb = new QuorumBase();
+    private final QuorumBase qb = new QuorumBase();
 
     @Before
     public void setUp() throws Exception {
@@ -60,15 +62,14 @@ public class AsyncTest extends ZKTestCase implements StringCallback, VoidCallbac
     }
 
     private ZooKeeper createClient(String hp) throws Exception {
-        ZooKeeper zk = ClientBase.createZKClient(hp);
-        return zk;
+        return ClientBase.createZKClient(hp);
     }
 
-    List<Integer> results = new LinkedList<Integer>();
+    List<Integer> results = new LinkedList<>();
 
     @Test
     public void testAsync() throws Exception {
-        ZooKeeper zk = null;
+        ZooKeeper zk;
         zk = createClient();
         try {
             zk.addAuthInfo("digest", "ben:passwd".getBytes());

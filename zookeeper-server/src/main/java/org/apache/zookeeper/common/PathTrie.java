@@ -27,11 +27,13 @@
  import java.util.concurrent.locks.Lock;
  import java.util.concurrent.locks.ReadWriteLock;
  import java.util.concurrent.locks.ReentrantReadWriteLock;
+
  import org.apache.commons.lang.StringUtils;
  import org.slf4j.Logger;
  import org.slf4j.LoggerFactory;
 
  /**
+  * 前缀树
   * a class that implements prefix matching for
   * components of a filesystem path. the trie
   * looks like a tree with edges mapping to
@@ -48,30 +50,38 @@
   */
  public class PathTrie {
 
-     /** Logger for this class */
+     /**
+      * Logger for this class
+      */
      private static final Logger LOG = LoggerFactory.getLogger(PathTrie.class);
 
-     /** Root node of PathTrie */
+     /**
+      * Root node of PathTrie
+      */
      private final TrieNode rootNode;
-
+     //可重入的读写锁
      private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
-
+     //读锁
      private final Lock readLock = lock.readLock();
-
+     //写锁
      private final Lock writeLock = lock.writeLock();
 
+     //数据结构
      static class TrieNode {
-
+         //值
          final String value;
+         //子node
          final Map<String, TrieNode> children;
+         //是否有属性
          boolean property;
+         //父node
          TrieNode parent;
 
          /**
           * Create a trie node with parent as parameter.
           *
           * @param parent the parent of this node
-          * @param value the value stored in this node
+          * @param value  the value stored in this node
           */
          private TrieNode(TrieNode parent, String value) {
              this.value = value;
@@ -127,7 +137,7 @@
           * Add a child to the existing node.
           *
           * @param childName the string name of the child
-          * @param node the node that is the child
+          * @param node      the node that is the child
           */
          void addChild(String childName, TrieNode node) {
              this.children.putIfAbsent(childName, node);
@@ -142,13 +152,11 @@
              this.children.computeIfPresent(childName, (key, childNode) -> {
                  // Node no longer has an external property associated
                  childNode.setProperty(false);
-
                  // Delete it if it has no children (is a leaf node)
                  if (childNode.isLeafNode()) {
                      childNode.setParent(null);
                      return null;
                  }
-
                  return childNode;
              });
          }
@@ -202,12 +210,11 @@
       */
      public void addPath(final String path) {
          Objects.requireNonNull(path, "Path cannot be null");
-
          final String[] pathComponents = StringUtils.split(path, '/');
          if (pathComponents.length == 0) {
              throw new IllegalArgumentException("Invalid path: " + path);
          }
-
+         //写锁
          writeLock.lock();
          try {
              TrieNode parent = rootNode;
@@ -237,7 +244,7 @@
          if (pathComponents.length == 0) {
              throw new IllegalArgumentException("Invalid path: " + path);
          }
-
+         //删除的时候,加写锁,那么新增,更新的时候肯定也要
          writeLock.lock();
          try {
              TrieNode parent = rootNode;
@@ -249,7 +256,6 @@
                  parent = parent.getChild(part);
                  LOG.debug("{}", parent);
              }
-
              final TrieNode realParent = parent.getParent();
              realParent.deleteChild(parent.getValue());
          } finally {
@@ -271,7 +277,7 @@
          if (pathComponents.length == 0) {
              throw new IllegalArgumentException("Invalid path: " + path);
          }
-
+         //加读锁
          readLock.lock();
          try {
              TrieNode parent = rootNode;
@@ -342,6 +348,11 @@
          } finally {
              writeLock.unlock();
          }
+     }
+
+     public static void main(String[] args) {
+         System.out.println(106 % 16);
+         System.out.println(106 % 32);
      }
 
  }

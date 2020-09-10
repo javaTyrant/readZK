@@ -142,7 +142,7 @@ public class LeaderSessionTracker extends UpgradeableSessionTracker {
         return sessionId >> 56;
     }
 
-    public void checkSession(long sessionId, Object owner) throws SessionExpiredException, SessionMovedException, UnknownSessionException {
+    public void checkSession(long sessionId, Object owner) throws SessionExpiredException, SessionMovedException {
         if (localSessionTracker != null) {
             try {
                 localSessionTracker.checkSession(sessionId, owner);
@@ -217,7 +217,7 @@ public class LeaderSessionTracker extends UpgradeableSessionTracker {
         if (localSessionTracker != null) {
             sessionExpiryMap = localSessionTracker.getSessionExpiryMap();
         } else {
-            sessionExpiryMap = new TreeMap<Long, Set<Long>>();
+            sessionExpiryMap = new TreeMap<>();
         }
         sessionExpiryMap.putAll(globalSessionTracker.getSessionExpiryMap());
         return sessionExpiryMap;

@@ -22,10 +22,12 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.metrics.MetricsUtils;
@@ -105,7 +107,7 @@ public class CommitProcessorMetricsTest extends ZKTestCase {
             while (state != State.WAITING) {
                 try {
                     Thread.sleep(50);
-                } catch (Exception e) {
+                } catch (Exception ignore) {
 
                 }
                 state = super.getState();
@@ -152,6 +154,7 @@ public class CommitProcessorMetricsTest extends ZKTestCase {
     private class DummyFinalProcessor implements RequestProcessor {
 
         int processTime;
+
         public DummyFinalProcessor(int processTime) {
             this.processTime = processTime;
         }
@@ -164,7 +167,7 @@ public class CommitProcessorMetricsTest extends ZKTestCase {
                         commitSeen.await(5, TimeUnit.SECONDS);
                     }
                     Thread.sleep(processTime);
-                } catch (Exception e) {
+                } catch (Exception ignore) {
 
                 }
             }

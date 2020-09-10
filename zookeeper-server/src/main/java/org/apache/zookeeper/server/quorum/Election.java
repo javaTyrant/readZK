@@ -20,7 +20,14 @@ package org.apache.zookeeper.server.quorum;
 
 public interface Election {
 
+    /**
+     * 什么时候会选举leader
+     * 选举leader
+     *
+     * @return 返会选票
+     * @throws InterruptedException
+     */
     Vote lookForLeader() throws InterruptedException;
-    void shutdown();
 
+    void shutdown();
 }

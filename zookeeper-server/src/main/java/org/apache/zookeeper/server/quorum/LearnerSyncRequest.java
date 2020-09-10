@@ -25,6 +25,7 @@ import org.apache.zookeeper.server.Request;
 
 public class LearnerSyncRequest extends Request {
 
+    //
     LearnerHandler fh;
     public LearnerSyncRequest(
         LearnerHandler fh, long sessionId, int xid, int type, ByteBuffer bb, List<Id> authInfo) {

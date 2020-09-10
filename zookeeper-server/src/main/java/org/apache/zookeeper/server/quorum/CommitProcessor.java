@@ -19,6 +19,7 @@
 package org.apache.zookeeper.server.quorum;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.server.Request;
@@ -44,31 +46,31 @@ import org.slf4j.LoggerFactory;
  * change the state of the system will come back as incoming committed requests,
  * so we need to match them up. Instead of just waiting for the committed requests,
  * we process the uncommitted requests that belong to other sessions.
- *
+ * <p>
  * The CommitProcessor is multi-threaded. Communication between threads is
  * handled via queues, atomics, and wait/notifyAll synchronized on the
  * processor. The CommitProcessor acts as a gateway for allowing requests to
  * continue with the remainder of the processing pipeline. It will allow many
  * read requests but only a single write request to be in flight simultaneously,
  * thus ensuring that write requests are processed in transaction id order.
- *
- *   - 1   commit processor main thread, which watches the request queues and
- *         assigns requests to worker threads based on their sessionId so that
- *         read and write requests for a particular session are always assigned
- *         to the same thread (and hence are guaranteed to run in order).
- *   - 0-N worker threads, which run the rest of the request processor pipeline
- *         on the requests. If configured with 0 worker threads, the primary
- *         commit processor thread runs the pipeline directly.
- *
+ * <p>
+ * - 1   commit processor main thread, which watches the request queues and
+ * assigns requests to worker threads based on their sessionId so that
+ * read and write requests for a particular session are always assigned
+ * to the same thread (and hence are guaranteed to run in order).
+ * - 0-N worker threads, which run the rest of the request processor pipeline
+ * on the requests. If configured with 0 worker threads, the primary
+ * commit processor thread runs the pipeline directly.
+ * <p>
  * Typical (default) thread counts are: on a 32 core machine, 1 commit
  * processor thread and 32 worker threads.
- *
+ * <p>
  * Multi-threading constraints:
- *   - Each session's requests must be processed in order.
- *   - Write requests must be processed in zxid order
- *   - Must ensure no race condition between writes in one session that would
- *     trigger a watch being set by a read request in another session
- *
+ * - Each session's requests must be processed in order.
+ * - Write requests must be processed in zxid order
+ * - Must ensure no race condition between writes in one session that would
+ * trigger a watch being set by a read request in another session
+ * <p>
  * The current implementation solves the third constraint by simply allowing no
  * read requests to be processed in parallel with write requests.
  */
@@ -76,19 +78,27 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
 
     private static final Logger LOG = LoggerFactory.getLogger(CommitProcessor.class);
 
-    /** Default: numCores */
+    /**
+     * Default: numCores
+     */
     public static final String ZOOKEEPER_COMMIT_PROC_NUM_WORKER_THREADS = "zookeeper.commitProcessor.numWorkerThreads";
-    /** Default worker pool shutdown timeout in ms: 5000 (5s) */
+    /**
+     * Default worker pool shutdown timeout in ms: 5000 (5s)
+     */
     public static final String ZOOKEEPER_COMMIT_PROC_SHUTDOWN_TIMEOUT = "zookeeper.commitProcessor.shutdownTimeout";
-    /** Default max read batch size: -1 to disable the feature */
+    /**
+     * Default max read batch size: -1 to disable the feature
+     */
     public static final String ZOOKEEPER_COMMIT_PROC_MAX_READ_BATCH_SIZE = "zookeeper.commitProcessor.maxReadBatchSize";
-    /** Default max commit batch size: 1 */
+    /**
+     * Default max commit batch size: 1
+     */
     public static final String ZOOKEEPER_COMMIT_PROC_MAX_COMMIT_BATCH_SIZE = "zookeeper.commitProcessor.maxCommitBatchSize";
 
     /**
      * Incoming requests.
      */
-    protected LinkedBlockingQueue<Request> queuedRequests = new LinkedBlockingQueue<Request>();
+    protected LinkedBlockingQueue<Request> queuedRequests = new LinkedBlockingQueue<>();
 
     /**
      * Incoming requests that are waiting on a commit,
@@ -99,17 +109,17 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
     /**
      * The number of read requests currently held in all session queues
      */
-    private AtomicInteger numReadQueuedRequests = new AtomicInteger(0);
+    private final AtomicInteger numReadQueuedRequests = new AtomicInteger(0);
 
     /**
      * The number of quorum requests currently held in all session queued
      */
-    private AtomicInteger numWriteQueuedRequests = new AtomicInteger(0);
+    private final AtomicInteger numWriteQueuedRequests = new AtomicInteger(0);
 
     /**
      * Requests that have been committed.
      */
-    protected final LinkedBlockingQueue<Request> committedRequests = new LinkedBlockingQueue<Request>();
+    protected final LinkedBlockingQueue<Request> committedRequests = new LinkedBlockingQueue<>();
 
     /**
      * Requests that we are holding until commit comes in. Keys represent
@@ -117,18 +127,22 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
      */
     protected final Map<Long, Deque<Request>> pendingRequests = new HashMap<>(10000);
 
-    /** The number of requests currently being processed */
+    /**
+     * The number of requests currently being processed
+     */
     protected final AtomicInteger numRequestsProcessing = new AtomicInteger(0);
 
     RequestProcessor nextProcessor;
 
-    /** For testing purposes, we use a separated stopping condition for the
-     * outer loop.*/
+    /**
+     * For testing purposes, we use a separated stopping condition for the
+     * outer loop.
+     */
     protected volatile boolean stoppedMainLoop = true;
     protected volatile boolean stopped = true;
     private long workerShutdownTimeoutMS;
     protected WorkerService workerPool;
-    private Object emptyPoolSync = new Object();
+    private final Object emptyPoolSync = new Object();
 
     /**
      * Max number of reads to process from queuedRequests before switching to
@@ -166,25 +180,25 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
 
     protected boolean needCommit(Request request) {
         switch (request.type) {
-        case OpCode.create:
-        case OpCode.create2:
-        case OpCode.createTTL:
-        case OpCode.createContainer:
-        case OpCode.delete:
-        case OpCode.deleteContainer:
-        case OpCode.setData:
-        case OpCode.reconfig:
-        case OpCode.multi:
-        case OpCode.setACL:
-        case OpCode.check:
-            return true;
-        case OpCode.sync:
-            return matchSyncs;
-        case OpCode.createSession:
-        case OpCode.closeSession:
-            return !request.isLocalSession();
-        default:
-            return false;
+            case OpCode.create:
+            case OpCode.create2:
+            case OpCode.createTTL:
+            case OpCode.createContainer:
+            case OpCode.delete:
+            case OpCode.deleteContainer:
+            case OpCode.setData:
+            case OpCode.reconfig:
+            case OpCode.multi:
+            case OpCode.setACL:
+            case OpCode.check:
+                return true;
+            case OpCode.sync:
+                return matchSyncs;
+            case OpCode.createSession:
+            case OpCode.closeSession:
+                return !request.isLocalSession();
+            default:
+                return false;
         }
     }
 
@@ -198,8 +212,8 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
              * possible to endlessly poll read requests from queuedRequests, and
              * that will lead to a starvation of non-local committed requests.
              */
-            int requestsToProcess = 0;
-            boolean commitIsWaiting = false;
+            int requestsToProcess;
+            boolean commitIsWaiting;
             do {
                 /*
                  * Since requests are placed in the queue before being sent to
@@ -240,9 +254,9 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                 Request request;
                 int readsProcessed = 0;
                 while (!stopped
-                       && requestsToProcess > 0
-                       && (maxReadBatchSize < 0 || readsProcessed <= maxReadBatchSize)
-                       && (request = queuedRequests.poll()) != null) {
+                        && requestsToProcess > 0
+                        && (maxReadBatchSize < 0 || readsProcessed <= maxReadBatchSize)
+                        && (request = queuedRequests.poll()) != null) {
                     requestsToProcess--;
                     if (needCommit(request) || pendingRequests.containsKey(request.sessionId)) {
                         // Add request to pending
@@ -314,8 +328,8 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                          * it must be a commit for a remote write.
                          */
                         if (!queuedWriteRequests.isEmpty()
-                            && queuedWriteRequests.peek().sessionId == request.sessionId
-                            && queuedWriteRequests.peek().cxid == request.cxid) {
+                                && queuedWriteRequests.peek().sessionId == request.sessionId
+                                && queuedWriteRequests.peek().cxid == request.cxid) {
                             /*
                              * Commit matches the earliest write in our write queue.
                              */
@@ -368,7 +382,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                         commitIsWaiting = !committedRequests.isEmpty();
                     }
                     ServerMetrics.getMetrics().WRITE_BATCH_TIME_IN_COMMIT_PROCESSOR
-                        .add(Time.currentElapsedTime() - startWriteTime);
+                            .add(Time.currentElapsedTime() - startWriteTime);
                     ServerMetrics.getMetrics().WRITES_ISSUED_IN_COMMIT_PROC.add(commitsProcessed);
 
                     /*
@@ -423,7 +437,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
             }
         }
         ServerMetrics.getMetrics().TIME_WAITING_EMPTY_POOL_IN_COMMIT_PROCESSOR_READ
-            .add(Time.currentElapsedTime() - startWaitTime);
+                .add(Time.currentElapsedTime() - startWaitTime);
     }
 
     @Override
@@ -435,8 +449,8 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
         initBatchSizes();
 
         LOG.info("Configuring CommitProcessor with "
-                 + (numWorkerThreads > 0 ? numWorkerThreads : "no")
-                 + " worker threads.");
+                + (numWorkerThreads > 0 ? numWorkerThreads : "no")
+                + " worker threads.");
         if (workerPool == null) {
             workerPool = new WorkerService("CommitProcWork", numWorkerThreads, true);
         }
@@ -484,12 +498,12 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
             } else if (request.commitRecvTime != -1) {
                 // Writes issued by other servers.
                 ServerMetrics.getMetrics().SERVER_WRITE_COMMITTED_TIME
-                    .add(Time.currentElapsedTime() - request.commitRecvTime);
+                        .add(Time.currentElapsedTime() - request.commitRecvTime);
             }
         } else {
             if (request.commitProcQueueStartTime != -1) {
                 ServerMetrics.getMetrics().READ_COMMITPROC_TIME
-                    .add(Time.currentElapsedTime() - request.commitProcQueueStartTime);
+                        .add(Time.currentElapsedTime() - request.commitProcQueueStartTime);
             }
         }
     }
@@ -542,10 +556,10 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                 nextProcessor.processRequest(request);
                 if (needCommit(request)) {
                     ServerMetrics.getMetrics().WRITE_FINAL_PROC_TIME
-                        .add(Time.currentElapsedTime() - timeBeforeFinalProc);
+                            .add(Time.currentElapsedTime() - timeBeforeFinalProc);
                 } else {
                     ServerMetrics.getMetrics().READ_FINAL_PROC_TIME
-                        .add(Time.currentElapsedTime() - timeBeforeFinalProc);
+                            .add(Time.currentElapsedTime() - timeBeforeFinalProc);
                 }
 
             } finally {
@@ -577,6 +591,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
         request.commitRecvTime = Time.currentElapsedTime();
         ServerMetrics.getMetrics().COMMITS_QUEUED.add(1);
         committedRequests.add(request);
+        //通知消费者
         wakeup();
     }
 

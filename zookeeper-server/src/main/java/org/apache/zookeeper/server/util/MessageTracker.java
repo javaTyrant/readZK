@@ -20,12 +20,14 @@ package org.apache.zookeeper.server.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 import org.apache.zookeeper.server.quorum.Leader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 /**
+ * 不保证线程安全
  * This class provides a way of buffering sentBuffer and receivedBuffer messages in order.
  * It uses EvictingQueue of size BUFFERED_MESSAGE_SIZE to store the messages.
  * When the queue is full it overrides the oldest in a circular manner.
@@ -42,6 +44,7 @@ public class MessageTracker {
     public static final String MESSAGE_TRACKER_ENABLED = "zookeeper.messageTracker.Enabled";
     public static final int BUFFERED_MESSAGE_SIZE;
     private static final boolean enabled;
+
     static {
         BUFFERED_MESSAGE_SIZE = Integer.getInteger(MESSAGE_TRACKER_BUFFER_SIZE, 10);
         enabled = Boolean.getBoolean(MESSAGE_TRACKER_ENABLED);
@@ -101,21 +104,21 @@ public class MessageTracker {
     }
 
     private static void logMessages(
-        String serverAddr,
-        CircularBuffer<BufferedMessage> messages,
-        Direction direction) {
+            String serverAddr,
+            CircularBuffer<BufferedMessage> messages,
+            Direction direction) {
         String sentOrReceivedText = direction == Direction.SENT ? "sentBuffer to" : "receivedBuffer from";
 
         if (messages.isEmpty()) {
             LOG.info("No buffered timestamps for messages {} {}", sentOrReceivedText, serverAddr);
         } else {
             LOG.warn("Last {} timestamps for messages {} {}:",
-                messages.size(), sentOrReceivedText, serverAddr);
+                    messages.size(), sentOrReceivedText, serverAddr);
             while (!messages.isEmpty()) {
                 LOG.warn("{} {}  {}",
-                    sentOrReceivedText,
-                    serverAddr,
-                    messages.take().toString());
+                        sentOrReceivedText,
+                        serverAddr,
+                        messages.take().toString());
             }
         }
     }
@@ -155,10 +158,10 @@ public class MessageTracker {
         public String toString() {
             if (messageType == -1) {
                 return "TimeStamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS")
-                    .format(new Date(timestamp));
+                        .format(new Date(timestamp));
             } else {
                 return "TimeStamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS")
-                    .format(new Date(timestamp)) + " Type: " + Leader.getPacketType(messageType);
+                        .format(new Date(timestamp)) + " Type: " + Leader.getPacketType(messageType);
             }
         }
     }

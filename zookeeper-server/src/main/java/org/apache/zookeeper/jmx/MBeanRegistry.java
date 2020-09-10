@@ -29,6 +29,7 @@ import javax.management.MBeanServer;
 import javax.management.MBeanServerFactory;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class MBeanRegistry {
 
     private final Object LOCK = new Object();
 
-    private Map<ZKMBeanInfo, String> mapBean2Path = new ConcurrentHashMap<ZKMBeanInfo, String>();
+    private Map<ZKMBeanInfo, String> mapBean2Path = new ConcurrentHashMap<>();
 
     private MBeanServer mBeanServer;
 
@@ -85,9 +86,10 @@ public class MBeanRegistry {
 
     /**
      * Registers a new MBean with the platform MBean server.
-     * @param bean the bean being registered
+     *
+     * @param bean   the bean being registered
      * @param parent if not null, the new bean will be registered as a child
-     * node of this parent.
+     *               node of this parent.
      */
     public void register(ZKMBeanInfo bean, ZKMBeanInfo parent) throws JMException {
         assert bean != null;
@@ -114,6 +116,7 @@ public class MBeanRegistry {
 
     /**
      * Unregister the MBean identified by the path.
+     *
      * @param path
      * @param bean
      */
@@ -132,7 +135,7 @@ public class MBeanRegistry {
 
     /**
      * @return a {@link Collection} with the {@link ZKMBeanInfo} instances not
-     *         unregistered. Mainly for testing purposes.
+     * unregistered. Mainly for testing purposes.
      */
     public Set<ZKMBeanInfo> getRegisteredBeans() {
         return new HashSet<ZKMBeanInfo>(mapBean2Path.keySet());
@@ -140,6 +143,7 @@ public class MBeanRegistry {
 
     /**
      * Unregister MBean.
+     *
      * @param bean
      */
     public void unregister(ZKMBeanInfo bean) {
@@ -158,8 +162,9 @@ public class MBeanRegistry {
 
     /**
      * Generate a filesystem-like path.
+     *
      * @param prefix path prefix
-     * @param name path elements
+     * @param name   path elements
      * @return absolute path
      */
     public String makeFullPath(String prefix, String... name) {
@@ -197,8 +202,10 @@ public class MBeanRegistry {
         }
         return index;
     }
+
     /**
      * Builds an MBean path and creates an ObjectName instance using the path.
+     *
      * @param path MBean path
      * @param bean the MBean instance
      * @return ObjectName to be registered with the platform MBean server

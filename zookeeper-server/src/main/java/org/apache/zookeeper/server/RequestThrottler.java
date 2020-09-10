@@ -19,7 +19,9 @@
 package org.apache.zookeeper.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.concurrent.LinkedBlockingQueue;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,14 +30,14 @@ import org.slf4j.LoggerFactory;
  * currently submitted to the request processor pipeline. The throttler augments
  * the limit imposed by the <code>globalOutstandingLimit</code> that is enforced
  * by the connection layer ({@link NIOServerCnxn}, {@link NettyServerCnxn}).
- *
+ * <p>
  * The connection layer limit applies backpressure against the TCP connection by
  * disabling selection on connections once the request limit is reached. However,
  * the connection layer always allows a connection to send at least one request
  * before disabling selection on that connection. Thus, in a scenario with 40000
  * client connections, the total number of requests inflight may be as high as
  * 40000 even if the <code>globalOustandingLimit</code> was set lower.
- *
+ * <p>
  * The RequestThrottler addresses this issue by adding additional queueing. When
  * enabled, client connections no longer submit requests directly to the request
  * processor pipeline but instead to the RequestThrottler. The RequestThrottler
@@ -44,13 +46,13 @@ import org.slf4j.LoggerFactory;
  * outstanding requests is higher than <code>maxRequests</code>, the throttler
  * will continually stall for <code>stallTime</code> milliseconds until
  * underlimit.
- *
+ * <p>
  * The RequestThrottler can also optionally drop stale requests rather than
  * submit them to the processor pipeline. A stale request is a request sent
  * by a connection that is already closed, and/or a request whose latency
  * will end up being higher than its associated session timeout. The notion
  * of staleness is configurable, @see Request for more details.
- *
+ * <p>
  * To ensure ordering guarantees, if a request is ever dropped from a connection
  * that connection is closed and flagged as invalid. All subsequent requests
  * inflight from that connection are then dropped as well.
@@ -59,14 +61,14 @@ public class RequestThrottler extends ZooKeeperCriticalThread {
 
     private static final Logger LOG = LoggerFactory.getLogger(RequestThrottler.class);
 
-    private final LinkedBlockingQueue<Request> submittedRequests = new LinkedBlockingQueue<Request>();
+    private final LinkedBlockingQueue<Request> submittedRequests = new LinkedBlockingQueue<>();
 
     private final ZooKeeperServer zks;
     private volatile boolean stopping;
     private volatile boolean killed;
 
     private static final String SHUTDOWN_TIMEOUT = "zookeeper.request_throttler.shutdownTimeout";
-    private static int shutdownTimeout = 10000;
+    private static final int shutdownTimeout;
 
     static {
         shutdownTimeout = Integer.getInteger(SHUTDOWN_TIMEOUT, 10000);
@@ -76,7 +78,7 @@ public class RequestThrottler extends ZooKeeperCriticalThread {
     /**
      * The total number of outstanding requests allowed before the throttler
      * starts stalling.
-     *
+     * <p>
      * When maxRequests = 0, throttling is disabled.
      */
     private static volatile int maxRequests = Integer.getInteger("zookeeper.request_throttle_max_requests", 0);
@@ -84,6 +86,7 @@ public class RequestThrottler extends ZooKeeperCriticalThread {
     /**
      * The time (in milliseconds) this is the maximum time for which throttler
      * thread may wait to be notified that it may proceed processing a request.
+     *
      */
     private static volatile int stallTime = Integer.getInteger("zookeeper.request_throttle_stall_time", 100);
 
@@ -170,6 +173,7 @@ public class RequestThrottler extends ZooKeeperCriticalThread {
                     if (request.isStale()) {
                         ServerMetrics.getMetrics().STALE_REQUESTS.add(1);
                     }
+                    //
                     zks.submitRequestNow(request);
                 }
             }
@@ -184,8 +188,7 @@ public class RequestThrottler extends ZooKeeperCriticalThread {
         try {
             ServerMetrics.getMetrics().REQUEST_THROTTLE_WAIT_COUNT.add(1);
             this.wait(stallTime);
-        } catch (InterruptedException ie) {
-            return;
+        } catch (InterruptedException ignore) {
         }
     }
 

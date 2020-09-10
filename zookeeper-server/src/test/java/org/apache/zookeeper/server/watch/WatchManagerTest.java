@@ -20,6 +20,7 @@ package org.apache.zookeeper.server.watch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +31,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZKTestCase;
@@ -67,7 +69,7 @@ public class WatchManagerTest extends ZKTestCase {
     @Before
     public void setUp() {
         ServerMetrics.getMetrics().resetAll();
-        watchers = new ConcurrentHashMap<Integer, DumbWatcher>();
+        watchers = new ConcurrentHashMap<>();
         r = new Random(System.nanoTime());
     }
 
@@ -118,10 +120,11 @@ public class WatchManagerTest extends ZKTestCase {
     }
 
     public class WatcherTriggerWorker extends Thread {
-
+        //需要用到的变量
         private final IWatchManager manager;
         private final int paths;
         private final AtomicInteger triggeredCount;
+        //volatile
         private volatile boolean stopped = false;
 
         public WatcherTriggerWorker(
@@ -238,7 +241,7 @@ public class WatchManagerTest extends ZKTestCase {
         // 1. start 5 workers to trigger watchers on that path
         //    count all the watchers have been fired
         AtomicInteger watchTriggered = new AtomicInteger();
-        List<WatcherTriggerWorker> triggerWorkers = new ArrayList<WatcherTriggerWorker>();
+        List<WatcherTriggerWorker> triggerWorkers = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             WatcherTriggerWorker worker = new WatcherTriggerWorker(manager, paths, watchTriggered);
             triggerWorkers.add(worker);
@@ -248,7 +251,7 @@ public class WatchManagerTest extends ZKTestCase {
         // 2. start 5 workers to add different watchers on the same path
         //    count all the watchers being added
         AtomicInteger watchesAdded = new AtomicInteger();
-        List<AddWatcherWorker> addWorkers = new ArrayList<AddWatcherWorker>();
+        List<AddWatcherWorker> addWorkers = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             AddWatcherWorker worker = new AddWatcherWorker(manager, paths, watchers, watchesAdded);
             addWorkers.add(worker);
@@ -307,7 +310,7 @@ public class WatchManagerTest extends ZKTestCase {
         // 2. start 5 workers to add different watchers on different path
         //    record the watchers have been added
         AtomicInteger watchesAdded = new AtomicInteger();
-        List<AddWatcherWorker> addWorkers = new ArrayList<AddWatcherWorker>();
+        List<AddWatcherWorker> addWorkers = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             AddWatcherWorker worker = new AddWatcherWorker(manager, paths, watchers, watchesAdded);
             addWorkers.add(worker);
@@ -358,7 +361,7 @@ public class WatchManagerTest extends ZKTestCase {
         // 1. start 5 workers to randomly mark those watcher as dead
         //    and remove them from watch manager
         Set<Watcher> deadWatchers = new HashSet<Watcher>();
-        List<CreateDeadWatchersWorker> deadWorkers = new ArrayList<CreateDeadWatchersWorker>();
+        List<CreateDeadWatchersWorker> deadWorkers = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             CreateDeadWatchersWorker worker = new CreateDeadWatchersWorker(manager, watchers, deadWatchers);
             deadWorkers.add(worker);

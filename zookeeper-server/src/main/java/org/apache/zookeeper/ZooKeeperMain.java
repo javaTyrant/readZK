@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.yetus.audience.InterfaceAudience;
 import org.apache.zookeeper.admin.ZooKeeperAdmin;
 import org.apache.zookeeper.cli.AddAuthCommand;
@@ -69,18 +70,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * cli的原理
  * The command line client to ZooKeeper.
- *
  */
 @InterfaceAudience.Public
 public class ZooKeeperMain {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperMain.class);
-    static final Map<String, String> commandMap = new HashMap<String, String>();
-    static final Map<String, CliCommand> commandMapCli = new HashMap<String, CliCommand>();
+    static final Map<String, String> commandMap = new HashMap<>();
+    static final Map<String, CliCommand> commandMapCli = new HashMap<>();
 
     protected MyCommandOptions cl = new MyCommandOptions();
-    protected HashMap<Integer, String> history = new HashMap<Integer, String>();
+    protected HashMap<Integer, String> history = new HashMap<>();
     protected int commandCount = 0;
     protected boolean printWatches = true;
     protected int exitCode = ExitCode.EXECUTION_FINISHED.getValue();
@@ -132,7 +133,7 @@ public class ZooKeeperMain {
 
     static void usage() {
         System.err.println("ZooKeeper -server host:port cmd args");
-        List<String> cmdList = new ArrayList<String>(commandMap.keySet());
+        List<String> cmdList = new ArrayList<>(commandMap.keySet());
         Collections.sort(cmdList);
         for (String cmd : cmdList) {
             System.err.println("\t" + cmd + " " + commandMap.get(cmd));
@@ -152,11 +153,11 @@ public class ZooKeeperMain {
 
     /**
      * A storage class for both command line options and shell commands.
-     *
      */
     static class MyCommandOptions {
 
-        private Map<String, String> options = new HashMap<String, String>();
+        private Map<String, String> options = new HashMap<>();
+        //解析的cmd命令
         private List<String> cmdArgs = null;
         private String command = null;
         public static final Pattern ARGS_PATTERN = Pattern.compile("\\s*([^\"\']\\S*|\"[^\"]*\"|'[^']*')\\s*");
@@ -190,6 +191,7 @@ public class ZooKeeperMain {
         /**
          * Parses a command line that may contain one or more flags
          * before an optional command string
+         *
          * @param args command line arguments
          * @return true if parsing succeeded, false otherwise.
          */
@@ -211,10 +213,10 @@ public class ZooKeeperMain {
                     System.err.println("Error: no argument found for option " + opt);
                     return false;
                 }
-
+                //必选参数
                 if (!opt.startsWith("-")) {
                     command = opt;
-                    cmdArgs = new ArrayList<String>();
+                    cmdArgs = new ArrayList<>();
                     cmdArgs.add(command);
                     while (it.hasNext()) {
                         cmdArgs.add(it.next());
@@ -227,6 +229,7 @@ public class ZooKeeperMain {
 
         /**
          * Breaks a string into command + arguments.
+         *
          * @param cmdstring string of form "cmd arg1 arg2..etc"
          * @return true if parsing succeeded.
          */
@@ -255,7 +258,6 @@ public class ZooKeeperMain {
     /**
      * Makes a list of possible completions, either for commands
      * or for zk nodes if the token to complete begins with /
-     *
      */
 
     protected void addToHistory(int i, String cmd) {
@@ -263,7 +265,7 @@ public class ZooKeeperMain {
     }
 
     public static List<String> getCommands() {
-        List<String> cmdList = new ArrayList<String>(commandMap.keySet());
+        List<String> cmdList = new ArrayList<>(commandMap.keySet());
         Collections.sort(cmdList);
         return cmdList;
     }
@@ -290,6 +292,7 @@ public class ZooKeeperMain {
         zk = new ZooKeeperAdmin(host, Integer.parseInt(cl.getOption("timeout")), new MyWatcher(), readOnly);
     }
 
+    //客户端入口
     public static void main(String[] args) throws CliException, IOException, InterruptedException {
         ZooKeeperMain main = new ZooKeeperMain(args);
         main.run();
@@ -361,16 +364,21 @@ public class ZooKeeperMain {
         System.exit(exitCode);
     }
 
-    public void executeLine(String line) throws CliException, InterruptedException, IOException {
+    //执行命令行命令
+    public void executeLine(String line) throws InterruptedException, IOException {
+        //非空才执行
         if (!line.equals("")) {
+            //解析
             cl.parseCommand(line);
+            //加入历史清单
             addToHistory(commandCount, line);
+            //执行命令
             processCmd(cl);
             commandCount++;
         }
     }
 
-    protected boolean processCmd(MyCommandOptions co) throws CliException, IOException, InterruptedException {
+    protected boolean processCmd(MyCommandOptions co) throws IOException, InterruptedException {
         boolean watch = false;
         try {
             watch = processZKCmd(co);
@@ -386,33 +394,41 @@ public class ZooKeeperMain {
         String[] args = co.getArgArray();
         String cmd = co.getCommand();
         if (args.length < 1) {
+            //打印用法
             usage();
             throw new MalformedCommandException("No command entered");
         }
-
+        //校验命令是否是合法的
         if (!commandMap.containsKey(cmd)) {
             usage();
             throw new CommandNotFoundException("Command not found " + cmd);
         }
-
         boolean watch = false;
         LOG.debug("Processing {}", cmd);
-
+        //如果是退出命令
         if (cmd.equals("quit")) {
+            //关闭zk
             zk.close();
+            //推出
             System.exit(exitCode);
+            //redo命令
         } else if (cmd.equals("redo") && args.length >= 2) {
+            //第二个参数是啥
             Integer i = Integer.decode(args[1]);
+            //redo的范围校验
             if (commandCount <= i || i < 0) { // don't allow redoing this redo
                 throw new MalformedCommandException("Command index out of range");
             }
+            //解析命令
             cl.parseCommand(history.get(i));
             if (cl.getCommand().equals("redo")) {
                 throw new MalformedCommandException("No redoing redos");
             }
+            //放入历史
             history.put(commandCount, history.get(i));
             processCmd(cl);
         } else if (cmd.equals("history")) {
+            //历史命令
             for (int i = commandCount - 10; i <= commandCount; ++i) {
                 if (i < 0) {
                     continue;
@@ -420,12 +436,14 @@ public class ZooKeeperMain {
                 System.out.println(i + " - " + history.get(i));
             }
         } else if (cmd.equals("printwatches")) {
+            //打印观察者
             if (args.length == 1) {
                 System.out.println("printwatches is " + (printWatches ? "on" : "off"));
             } else {
                 printWatches = args[1].equals("on");
             }
         } else if (cmd.equals("connect")) {
+            //连接命令
             if (args.length >= 2) {
                 connectToZK(args[1]);
             } else {
@@ -434,15 +452,17 @@ public class ZooKeeperMain {
         }
 
         // Below commands all need a live connection
+        // 下面的命令都需要存活的连接,所以校验一次连接
         if (zk == null || !zk.getState().isAlive()) {
             System.out.println("Not connected");
             return false;
         }
 
-        // execute from commandMap
+        // execute from commandMap,获取zk内部的命令
         CliCommand cliCmd = commandMapCli.get(cmd);
         if (cliCmd != null) {
             cliCmd.setZk(zk);
+            //解析执行,具体的子类执行具体的命令
             watch = cliCmd.parse(args).exec();
         } else if (!commandMap.containsKey(cmd)) {
             usage();

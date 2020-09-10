@@ -140,14 +140,14 @@ public class BinaryOutputArchive implements OutputArchive {
         writeInt(v.size(), tag);
     }
 
-    public void endVector(List<?> v, String tag) throws IOException {
+    public void endVector(List<?> v, String tag) {
     }
 
     public void startMap(TreeMap<?, ?> v, String tag) throws IOException {
         writeInt(v.size(), tag);
     }
 
-    public void endMap(TreeMap<?, ?> v, String tag) throws IOException {
+    public void endMap(TreeMap<?, ?> v, String tag) {
     }
 
 }

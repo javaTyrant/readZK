@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -43,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
+
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.TestableZooKeeper;
@@ -71,7 +73,7 @@ public abstract class ClientBase extends ZKTestCase {
 
     public static int CONNECTION_TIMEOUT = 30000;
     static final File BASETEST = new File(System.getProperty("build.test.dir", "build"));
-
+    //
     protected String hostPort = "127.0.0.1:" + PortAssignment.unique();
     protected int maxCnxns = 0;
     protected ServerCnxnFactory serverFactory = null;
@@ -98,12 +100,14 @@ public abstract class ClientBase extends ZKTestCase {
         public CountdownWatcher() {
             reset();
         }
+
         public synchronized void reset() {
             clientConnected = new CountDownLatch(1);
             connected = false;
             syncConnected = false;
             readOnlyConnected = false;
         }
+
         public synchronized void process(WatchedEvent event) {
             KeeperState state = event.getState();
             if (state == KeeperState.SyncConnected) {
@@ -125,9 +129,11 @@ public abstract class ClientBase extends ZKTestCase {
                 clientConnected.countDown();
             }
         }
+
         public synchronized boolean isConnected() {
             return connected;
         }
+
         public synchronized void waitForConnected(long timeout) throws InterruptedException, TimeoutException {
             long expire = Time.currentElapsedTime() + timeout;
             long left = timeout;
@@ -140,6 +146,7 @@ public abstract class ClientBase extends ZKTestCase {
 
             }
         }
+
         public synchronized void waitForSyncConnected(long timeout) throws InterruptedException, TimeoutException {
             long expire = Time.currentElapsedTime() + timeout;
             long left = timeout;
@@ -151,6 +158,7 @@ public abstract class ClientBase extends ZKTestCase {
                 throw new TimeoutException("Failed to connect to read-write ZooKeeper server.");
             }
         }
+
         public synchronized void waitForReadOnlyConnected(long timeout) throws InterruptedException, TimeoutException {
             long expire = System.currentTimeMillis() + timeout;
             long left = timeout;
@@ -162,6 +170,7 @@ public abstract class ClientBase extends ZKTestCase {
                 throw new TimeoutException("Failed to connect in read-only mode to ZooKeeper server.");
             }
         }
+
         public synchronized void waitForDisconnected(long timeout) throws InterruptedException, TimeoutException {
             long expire = Time.currentElapsedTime() + timeout;
             long left = timeout;
@@ -178,6 +187,7 @@ public abstract class ClientBase extends ZKTestCase {
     }
 
     protected TestableZooKeeper createClient() throws IOException, InterruptedException {
+        //local+port
         return createClient(hostPort);
     }
 
@@ -193,11 +203,13 @@ public abstract class ClientBase extends ZKTestCase {
     private List<ZooKeeper> allClients;
     private boolean allClientsSetup = false;
 
-    protected TestableZooKeeper createClient(CountdownWatcher watcher, String hp) throws IOException, InterruptedException {
+    protected TestableZooKeeper createClient(CountdownWatcher watcher, String hp)
+            throws IOException, InterruptedException {
         return createClient(watcher, hp, CONNECTION_TIMEOUT);
     }
 
-    protected TestableZooKeeper createClient(CountdownWatcher watcher, String hp, int timeout) throws IOException, InterruptedException {
+    protected TestableZooKeeper createClient(CountdownWatcher watcher, String hp, int timeout)
+            throws IOException, InterruptedException {
         watcher.reset();
         TestableZooKeeper zk = new TestableZooKeeper(hp, timeout, watcher);
         if (!watcher.clientConnected.await(timeout, TimeUnit.MILLISECONDS)) {
@@ -227,14 +239,16 @@ public abstract class ClientBase extends ZKTestCase {
 
         String host;
         int port;
+
         public HostPort(String host, int port) {
             this.host = host;
             this.port = port;
         }
 
     }
+
     public static List<HostPort> parseHostPortList(String hplist) {
-        ArrayList<HostPort> alist = new ArrayList<HostPort>();
+        ArrayList<HostPort> alist = new ArrayList<>();
         for (String hp : hplist.split(",")) {
             int idx = hp.lastIndexOf(':');
             String host = hp.substring(0, idx);
@@ -374,7 +388,8 @@ public abstract class ClientBase extends ZKTestCase {
         }
     }
 
-    private static int getPort(String hostPort) {
+    private static int
+    getPort(String hostPort) {
         String[] split = hostPort.split(":");
         String portstr = split[split.length - 1];
         String[] pc = portstr.split("/");
@@ -386,6 +401,7 @@ public abstract class ClientBase extends ZKTestCase {
 
     /**
      * Starting the given server instance
+     * 找到了
      */
     public static void startServerInstance(
             File dataDir,
@@ -411,18 +427,18 @@ public abstract class ClientBase extends ZKTestCase {
      * may affect other test cases.
      *
      * @return newly created server instance
-     *
      * @see <a
-     *      href="https://issues.apache.org/jira/browse/ZOOKEEPER-1852">ZOOKEEPER-1852</a>
-     *      for more information.
+     * href="https://issues.apache.org/jira/browse/ZOOKEEPER-1852">ZOOKEEPER-1852</a>
+     * for more information.
      */
     public static ServerCnxnFactory createNewServerInstance(
             ServerCnxnFactory factory,
             String hostPort,
-            int maxCnxns) throws IOException, InterruptedException {
+            int maxCnxns) throws IOException {
         final int port = getPort(hostPort);
         LOG.info("CREATING server instance 127.0.0.1:{}", port);
         if (factory == null) {
+            //构建factory
             factory = ServerCnxnFactory.createFactory(port, maxCnxns);
         }
         return factory;
@@ -465,13 +481,14 @@ public abstract class ClientBase extends ZKTestCase {
         FilePadding.setPreallocSize(100 * 1024);
     }
 
-    protected void setUpAll() throws Exception {
-        allClients = new LinkedList<ZooKeeper>();
+    protected void setUpAll() {
+        allClients = new LinkedList<>();
         allClientsSetup = true;
     }
 
     @Before
     public void setUp() throws Exception {
+        //serverId为1
         setUpWithServerId(1);
     }
 
@@ -486,9 +503,9 @@ public abstract class ClientBase extends ZKTestCase {
             initialFdCount = osMbean.getOpenFileDescriptorCount();
             LOG.info("Initial fdcount is: " + initialFdCount);
         }
-
+        //设置test环境
         setupTestEnv();
-
+        //
         setupCustomizedEnv();
 
         JMXEnv.setUp();
@@ -513,7 +530,9 @@ public abstract class ClientBase extends ZKTestCase {
 
     private void startServer(int serverId) throws Exception {
         LOG.info("STARTING server");
+        //创建服务器实例
         serverFactory = createNewServerInstance(serverFactory, hostPort, maxCnxns);
+        //启动服务器
         startServerInstance(tmpDir, serverFactory, hostPort, serverId);
         // ensure that server and data bean are registered
         Set<ObjectName> children = JMXEnv.ensureParent("InMemoryDataTree", "StandaloneServer_port");
@@ -546,8 +565,7 @@ public abstract class ClientBase extends ZKTestCase {
     /**
      * Returns a string representation of the given long value session id
      *
-     * @param sessionId
-     *            long value of session id
+     * @param sessionId long value of session id
      * @return string representation of session id
      */
     protected static String getHexSessionId(long sessionId) {
@@ -562,7 +580,7 @@ public abstract class ClientBase extends ZKTestCase {
         JMXEnv.ensureOnly();
     }
 
-    protected void tearDownAll() throws Exception {
+    protected void tearDownAll() {
         synchronized (this) {
             if (allClients != null) {
                 for (ZooKeeper zk : allClients) {
@@ -644,7 +662,7 @@ public abstract class ClientBase extends ZKTestCase {
      * Verify that all of the servers see the same number of nodes
      * at the root
      */
-    void verifyRootOfAllServersMatch(String hostPort) throws InterruptedException, KeeperException, IOException {
+    void verifyRootOfAllServersMatch(String hostPort) throws InterruptedException {
         String[] parts = hostPort.split(",");
 
         // run through till the counts no longer change on each server
@@ -729,11 +747,9 @@ public abstract class ClientBase extends ZKTestCase {
      * Returns ZooKeeper client after connecting to ZooKeeper Server. Session
      * timeout is {@link #CONNECTION_TIMEOUT}
      *
-     * @param cxnString
-     *            connection string in the form of host:port
-     * @param sessionTimeout
-     * @throws IOException
-     *             in cases of network failure
+     * @param cxnString      connection string in the form of host:port
+     * @param sessionTimeout timeout
+     * @throws IOException in cases of network failure
      */
     public static ZooKeeper createZKClient(String cxnString, int sessionTimeout) throws IOException {
         CountdownWatcher watcher = new CountdownWatcher();

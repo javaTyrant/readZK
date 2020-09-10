@@ -20,6 +20,7 @@ package org.apache.zookeeper.server.quorum;
 
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
+
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.server.Request;
@@ -31,19 +32,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 这个类有几个实例
+ * RequestProcessor将任何会改变系统状态的请求转发给leader
  * This RequestProcessor forwards any requests that modify the state of the
  * system to the Leader.
  */
 public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(FollowerRequestProcessor.class);
-
+    //从节点
     FollowerZooKeeperServer zks;
-
+    //下一个处理器
     RequestProcessor nextProcessor;
-
-    LinkedBlockingQueue<Request> queuedRequests = new LinkedBlockingQueue<Request>();
-
+    //入队列的请求,线程安全的
+    LinkedBlockingQueue<Request> queuedRequests = new LinkedBlockingQueue<>();
+    //完成了吗
     boolean finished = false;
 
     public FollowerRequestProcessor(FollowerZooKeeperServer zks, RequestProcessor nextProcessor) {
@@ -52,10 +55,12 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
         this.nextProcessor = nextProcessor;
     }
 
+    //这个方法只会被启动一次,所以finished是无需多线程控制的
     @Override
     public void run() {
         try {
             while (!finished) {
+                //从队列中取出请求
                 Request request = queuedRequests.take();
                 if (LOG.isTraceEnabled()) {
                     ZooTrace.logRequest(LOG, ZooTrace.CLIENT_REQUEST_TRACE_MASK, 'F', request, "");
@@ -63,47 +68,52 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                 if (request == Request.requestOfDeath) {
                     break;
                 }
-
                 // Screen quorum requests against ACLs first
                 if (!zks.authWriteRequest(request)) {
                     continue;
                 }
-
                 // We want to queue the request to be processed before we submit
                 // the request to the leader so that we are ready to receive
                 // the response
+                //我们想在提交这个请求给leader之前把请求先放到队列里,所以我们
+                //会准备好接受这些回应
                 nextProcessor.processRequest(request);
 
-                // We now ship the request to the leader. As with all
+                // We now ship the reqZuest to the leader. As with all
                 // other quorum operations, sync also follows this code
                 // path, but different from others, we need to keep track
                 // of the sync operations this follower has pending, so we
                 // add it to pendingSyncs.
                 switch (request.type) {
-                case OpCode.sync:
-                    zks.pendingSyncs.add(request);
-                    zks.getFollower().request(request);
-                    break;
-                case OpCode.create:
-                case OpCode.create2:
-                case OpCode.createTTL:
-                case OpCode.createContainer:
-                case OpCode.delete:
-                case OpCode.deleteContainer:
-                case OpCode.setData:
-                case OpCode.reconfig:
-                case OpCode.setACL:
-                case OpCode.multi:
-                case OpCode.check:
-                    zks.getFollower().request(request);
-                    break;
-                case OpCode.createSession:
-                case OpCode.closeSession:
-                    // Don't forward local sessions to the leader.
-                    if (!request.isLocalSession()) {
+                    //同步
+                    case OpCode.sync:
+                        zks.pendingSyncs.add(request);
                         zks.getFollower().request(request);
-                    }
-                    break;
+                        break;
+                    //事务
+                    case OpCode.create:
+                    case OpCode.create2:
+                    case OpCode.createTTL:
+                    case OpCode.createContainer:
+                    case OpCode.delete:Le
+                    case OpCode.deleteContainer:
+                    case OpCode.setData:
+                    case OpCode.reconfig:
+                    case OpCode.setACL:
+                    case OpCode.multi:
+                    case OpCode.check:
+                        //发送请求包给leader
+                        //先获取follower,在发送请求
+                        zks.getFollower().request(request);
+                        break;
+                    case OpCode.createSession:
+                    case OpCode.closeSession:
+                        //不要把本地的sessions转发给leader
+                        // Don't forward local sessions to the leader.
+                        if (!request.isLocalSession()) {
+                            zks.getFollower().request(request);
+                        }
+                        break;
                 }
             }
         } catch (Exception e) {
@@ -139,11 +149,11 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                     queuedRequests.add(upgradeRequest);
                 }
             }
-
             queuedRequests.add(request);
         }
     }
 
+    //关闭的时候,不需要是volatile的吗
     public void shutdown() {
         LOG.info("Shutting down");
         finished = true;

@@ -47,9 +47,9 @@ public class BinaryInputArchive implements InputArchive {
         }
     }
 
-    private DataInput in;
-    private int maxBufferSize;
-    private int extraMaxBufferSize;
+    private final DataInput in;
+    private final int maxBufferSize;
+    private final int extraMaxBufferSize;
 
     public static BinaryInputArchive getArchive(InputStream strm) {
         return new BinaryInputArchive(new DataInputStream(strm));
@@ -134,10 +134,10 @@ public class BinaryInputArchive implements InputArchive {
         r.deserialize(this, tag);
     }
 
-    public void startRecord(String tag) throws IOException {
+    public void startRecord(String tag) {
     }
 
-    public void endRecord(String tag) throws IOException {
+    public void endRecord(String tag) {
     }
 
     public Index startVector(String tag) throws IOException {
@@ -148,14 +148,14 @@ public class BinaryInputArchive implements InputArchive {
         return new BinaryIndex(len);
     }
 
-    public void endVector(String tag) throws IOException {
+    public void endVector(String tag) {
     }
 
     public Index startMap(String tag) throws IOException {
         return new BinaryIndex(readInt(tag));
     }
 
-    public void endMap(String tag) throws IOException {
+    public void endMap(String tag) {
     }
 
     // Since this is a rough sanity check, add some padding to maxBuffer to

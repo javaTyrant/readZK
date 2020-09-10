@@ -228,7 +228,7 @@ public class NettyServerCnxn extends ServerCnxn {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             if (sb == null) {
                 return;
             }
@@ -237,7 +237,7 @@ public class NettyServerCnxn extends ServerCnxn {
         }
 
         @Override
-        public void flush() throws IOException {
+        public void flush() {
             checkFlush(true);
         }
 

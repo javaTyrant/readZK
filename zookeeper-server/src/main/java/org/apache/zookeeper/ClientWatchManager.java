@@ -21,19 +21,23 @@ package org.apache.zookeeper;
 import java.util.Set;
 
 /**
+ * 客户端监听管理者,有两个实现类
+ * 1.MyWatchManager
+ * 2.ZKWatchManager
  */
 public interface ClientWatchManager {
 
     /**
+     * 返回一个要被这个事件通知的watcher的集合.
      * Return a set of watchers that should be notified of the event. The
      * manager must not notify the watcher(s), however it will update it's
      * internal structure as if the watches had triggered. The intent being
      * that the callee is now responsible for notifying the watchers of the
      * event, possibly at some later time.
      *
-     * @param state event state
-     * @param type event type
-     * @param path event path
+     * @param state event state 事件状态
+     * @param type  event type 事件类型
+     * @param path  event path 事件的路径
      * @return may be empty set but must not be null
      */
     Set<Watcher> materialize(Watcher.Event.KeeperState state, Watcher.Event.EventType type, String path);

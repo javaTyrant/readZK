@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.common.Time;
@@ -45,11 +46,12 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
 
     private static final Logger LOG = LoggerFactory.getLogger(SessionTrackerImpl.class);
 
-    protected final ConcurrentHashMap<Long, SessionImpl> sessionsById = new ConcurrentHashMap<Long, SessionImpl>();
-
+    protected final ConcurrentHashMap<Long, SessionImpl> sessionsById = new ConcurrentHashMap<>();
+    //过期session队列
     private final ExpiryQueue<SessionImpl> sessionExpiryQueue;
 
     private final ConcurrentMap<Long, Integer> sessionsWithTimeout;
+
     private final AtomicLong nextSessionId = new AtomicLong();
 
     public static class SessionImpl implements Session {
@@ -69,9 +71,11 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
         public long getSessionId() {
             return sessionId;
         }
+
         public int getTimeout() {
             return timeout;
         }
+
         public boolean isClosing() {
             return isClosing;
         }
@@ -86,6 +90,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
      * Generates an initial sessionId. High order 1 byte is serverId, next
      * 5 bytes are from timestamp, and low order 2 bytes are 0s.
      * Use ">>> 8", not ">> 8" to make sure that the high order 1 byte is entirely up to the server Id(@see ZOOKEEPER-1622).
+     *
      * @param id server Id
      * @return the Session Id
      */
@@ -104,7 +109,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
     public SessionTrackerImpl(SessionExpirer expirer, ConcurrentMap<Long, Integer> sessionsWithTimeout, int tickTime, long serverId, ZooKeeperServerListener listener) {
         super("SessionTracker", listener);
         this.expirer = expirer;
-        this.sessionExpiryQueue = new ExpiryQueue<SessionImpl>(tickTime);
+        this.sessionExpiryQueue = new ExpiryQueue<>(tickTime);
         this.sessionsWithTimeout = sessionsWithTimeout;
         this.nextSessionId.set(initializeNextSessionId(serverId));
         for (Entry<Long, Integer> e : sessionsWithTimeout.entrySet()) {
@@ -127,9 +132,9 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
     public synchronized Map<Long, Set<Long>> getSessionExpiryMap() {
         // Convert time -> sessions map to time -> session IDs map
         Map<Long, Set<SessionImpl>> expiryMap = sessionExpiryQueue.getExpiryMap();
-        Map<Long, Set<Long>> sessionExpiryMap = new TreeMap<Long, Set<Long>>();
+        Map<Long, Set<Long>> sessionExpiryMap = new TreeMap<>();
         for (Entry<Long, Set<SessionImpl>> e : expiryMap.entrySet()) {
-            Set<Long> ids = new HashSet<Long>();
+            Set<Long> ids = new HashSet<>();
             sessionExpiryMap.put(e.getKey(), ids);
             for (SessionImpl s : e.getValue()) {
                 ids.add(s.sessionId);
@@ -198,10 +203,10 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
         }
 
         String msg = MessageFormat.format(
-            "SessionTrackerImpl --- Touch {0}session: 0x{1} with timeout {2}",
-            sessionStatus,
-            Long.toHexString(sessionId),
-            Integer.toString(timeout));
+                "SessionTrackerImpl --- Touch {0}session: 0x{1} with timeout {2}",
+                sessionStatus,
+                Long.toHexString(sessionId),
+                Integer.toString(timeout));
 
         ZooTrace.logTraceMessage(LOG, ZooTrace.CLIENT_PING_TRACE_MASK, msg);
     }
@@ -237,9 +242,9 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
         sessionsWithTimeout.remove(sessionId);
         if (LOG.isTraceEnabled()) {
             ZooTrace.logTraceMessage(
-                LOG,
-                ZooTrace.SESSION_TRACE_MASK,
-                "SessionTrackerImpl --- Removing session 0x" + Long.toHexString(sessionId));
+                    LOG,
+                    ZooTrace.SESSION_TRACE_MASK,
+                    "SessionTrackerImpl --- Removing session 0x" + Long.toHexString(sessionId));
         }
         if (s != null) {
             sessionExpiryQueue.remove(s);
@@ -286,10 +291,10 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements Sessi
         if (LOG.isTraceEnabled()) {
             String actionStr = added ? "Adding" : "Existing";
             ZooTrace.logTraceMessage(
-                LOG,
-                ZooTrace.SESSION_TRACE_MASK,
-                "SessionTrackerImpl --- " + actionStr
-                + " session 0x" + Long.toHexString(id) + " " + sessionTimeout);
+                    LOG,
+                    ZooTrace.SESSION_TRACE_MASK,
+                    "SessionTrackerImpl --- " + actionStr
+                            + " session 0x" + Long.toHexString(id) + " " + sessionTimeout);
         }
 
         updateSessionExpiry(session, sessionTimeout);

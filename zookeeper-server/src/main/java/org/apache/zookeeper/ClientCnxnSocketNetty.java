@@ -18,38 +18,15 @@
 
 package org.apache.zookeeper;
 
-import static org.apache.zookeeper.common.X509Exception.SSLContextException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import org.apache.zookeeper.ClientCnxn.EndOfStreamException;
 import org.apache.zookeeper.ClientCnxn.Packet;
 import org.apache.zookeeper.client.ZKClientConfig;
@@ -58,6 +35,22 @@ import org.apache.zookeeper.common.NettyUtils;
 import org.apache.zookeeper.common.X509Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static org.apache.zookeeper.common.X509Exception.SSLContextException;
 
 /**
  * ClientCnxnSocketNetty implements ClientCnxnSocket abstract methods.
@@ -125,70 +118,68 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
     }
 
     @Override
-    void connect(InetSocketAddress addr) throws IOException {
+    void connect(InetSocketAddress addr) {
         firstConnect = new CountDownLatch(1);
 
         Bootstrap bootstrap = new Bootstrap().group(eventLoopGroup)
-                                             .channel(NettyUtils.nioOrEpollSocketChannel())
-                                             .option(ChannelOption.SO_LINGER, -1)
-                                             .option(ChannelOption.TCP_NODELAY, true)
-                                             .handler(new ZKClientPipelineFactory(addr.getHostString(), addr.getPort()));
+                .channel(NettyUtils.nioOrEpollSocketChannel())
+                .option(ChannelOption.SO_LINGER, -1)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .handler(new ZKClientPipelineFactory(addr.getHostString(), addr.getPort()));
         bootstrap = configureBootstrapAllocator(bootstrap);
         bootstrap.validate();
 
         connectLock.lock();
         try {
+            //boot
             connectFuture = bootstrap.connect(addr);
-            connectFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                    // this lock guarantees that channel won't be assigned after cleanup().
-                    boolean connected = false;
-                    connectLock.lock();
-                    try {
-                        if (!channelFuture.isSuccess()) {
-                            LOG.info("future isn't success, cause:", channelFuture.cause());
-                            return;
-                        } else if (connectFuture == null) {
-                            LOG.info("connect attempt cancelled");
-                            // If the connect attempt was cancelled but succeeded
-                            // anyway, make sure to close the channel, otherwise
-                            // we may leak a file descriptor.
-                            channelFuture.channel().close();
-                            return;
-                        }
-                        // setup channel, variables, connection, etc.
-                        channel = channelFuture.channel();
-
-                        disconnected.set(false);
-                        initialized = false;
-                        lenBuffer.clear();
-                        incomingBuffer = lenBuffer;
-
-                        sendThread.primeConnection();
-                        updateNow();
-                        updateLastSendAndHeard();
-
-                        if (sendThread.tunnelAuthInProgress()) {
-                            waitSasl.drainPermits();
-                            needSasl.set(true);
-                            sendPrimePacket();
-                        } else {
-                            needSasl.set(false);
-                        }
-                        connected = true;
-                    } finally {
-                        connectFuture = null;
-                        connectLock.unlock();
-                        if (connected) {
-                            LOG.info("channel is connected: {}", channelFuture.channel());
-                        }
-                        // need to wake on connect success or failure to avoid
-                        // timing out ClientCnxn.SendThread which may be
-                        // blocked waiting for first connect in doTransport().
-                        wakeupCnxn();
-                        firstConnect.countDown();
+            connectFuture.addListener((ChannelFutureListener) channelFuture -> {
+                // this lock guarantees that channel won't be assigned after cleanup().
+                boolean connected = false;
+                connectLock.lock();
+                try {
+                    if (!channelFuture.isSuccess()) {
+                        LOG.info("future isn't success, cause:", channelFuture.cause());
+                        return;
+                    } else if (connectFuture == null) {
+                        LOG.info("connect attempt cancelled");
+                        // If the connect attempt was cancelled but succeeded
+                        // anyway, make sure to close the channel, otherwise
+                        // we may leak a file descriptor.
+                        channelFuture.channel().close();
+                        return;
                     }
+                    // setup channel, variables, connection, etc.
+                    channel = channelFuture.channel();
+
+                    disconnected.set(false);
+                    initialized = false;
+                    lenBuffer.clear();
+                    incomingBuffer = lenBuffer;
+
+                    sendThread.primeConnection();
+                    updateNow();
+                    updateLastSendAndHeard();
+
+                    if (sendThread.tunnelAuthInProgress()) {
+                        waitSasl.drainPermits();
+                        needSasl.set(true);
+                        sendPrimePacket();
+                    } else {
+                        needSasl.set(false);
+                    }
+                    connected = true;
+                } finally {
+                    connectFuture = null;
+                    connectLock.unlock();
+                    if (connected) {
+                        LOG.info("channel is connected: {}", channelFuture.channel());
+                    }
+                    // need to wake on connect success or failure to avoid
+                    // timing out ClientCnxn.SendThread which may be
+                    // blocked waiting for first connect in doTransport().
+                    wakeupCnxn();
+                    firstConnect.countDown();
                 }
             });
         } finally {
@@ -211,13 +202,7 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
         } finally {
             connectLock.unlock();
         }
-        Iterator<Packet> iter = outgoingQueue.iterator();
-        while (iter.hasNext()) {
-            Packet p = iter.next();
-            if (p == WakeupPacket.getInstance()) {
-                iter.remove();
-            }
-        }
+        outgoingQueue.removeIf(p -> p == WakeupPacket.getInstance());
     }
 
     @Override
@@ -258,9 +243,9 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
 
     @Override
     void doTransport(
-        int waitTimeOut,
-        Queue<Packet> pendingQueue,
-        ClientCnxn cnxn) throws IOException, InterruptedException {
+            int waitTimeOut,
+            Queue<Packet> pendingQueue,
+            ClientCnxn cnxn) throws IOException, InterruptedException {
         try {
             if (!firstConnect.await(waitTimeOut, TimeUnit.MILLISECONDS)) {
                 return;
@@ -300,9 +285,10 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
 
     /**
      * Sends a packet to the remote peer and flushes the channel.
+     *
      * @param p packet to send.
      * @return a ChannelFuture that will complete when the write operation
-     *         succeeds or fails.
+     * succeeds or fails.
      */
     private ChannelFuture sendPktAndFlush(Packet p) {
         return sendPkt(p, true);
@@ -310,9 +296,10 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
 
     /**
      * Sends a packet to the remote peer but does not flush() the channel.
+     *
      * @param p packet to send.
      * @return a ChannelFuture that will complete when the write operation
-     *         succeeds or fails.
+     * succeeds or fails.
      */
     private ChannelFuture sendPktOnly(Packet p) {
         return sendPkt(p, false);
@@ -350,8 +337,8 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
         while (true) {
             if (p != WakeupPacket.getInstance()) {
                 if ((p.requestHeader != null)
-                    && (p.requestHeader.getType() != ZooDefs.OpCode.ping)
-                    && (p.requestHeader.getType() != ZooDefs.OpCode.auth)) {
+                        && (p.requestHeader.getType() != ZooDefs.OpCode.ping)
+                        && (p.requestHeader.getType() != ZooDefs.OpCode.auth)) {
                     p.requestHeader.setXid(cnxn.getXid());
                     synchronized (pendingQueue) {
                         pendingQueue.add(p);
@@ -393,7 +380,7 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
     }
 
     @Override
-    void testableCloseSocket() throws IOException {
+    void testableCloseSocket() {
         Channel copiedChanRef = channel;
         if (copiedChanRef != null) {
             copiedChanRef.disconnect().awaitUninterruptibly();
@@ -423,8 +410,8 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
 
         private SSLContext sslContext = null;
         private SSLEngine sslEngine = null;
-        private String host;
-        private int port;
+        private final String host;
+        private final int port;
 
         public ZKClientPipelineFactory(String host, int port) {
             this.host = host;
@@ -465,7 +452,7 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
         AtomicBoolean channelClosed = new AtomicBoolean(false);
 
         @Override
-        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        public void channelInactive(ChannelHandlerContext ctx) {
             LOG.info("channel is disconnected: {}", ctx.channel());
             cleanup();
         }
@@ -529,6 +516,7 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
      * Sets the test ByteBufAllocator. This allocator will be used by all
      * future instances of this class.
      * It is not recommended to use this method outside of testing.
+     *
      * @param allocator the ByteBufAllocator to use for all netty buffer
      *                  allocations.
      */

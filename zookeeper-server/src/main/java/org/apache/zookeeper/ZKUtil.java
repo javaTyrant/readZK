@@ -170,7 +170,7 @@ public class ZKUtil {
         ZooKeeper zk,
         final String pathRoot) throws KeeperException, InterruptedException {
         Queue<String> queue = new ArrayDeque<>();
-        List<String> tree = new ArrayList<String>();
+        List<String> tree = new ArrayList<>();
         queue.add(pathRoot);
         tree.add(pathRoot);
         while (!queue.isEmpty()) {

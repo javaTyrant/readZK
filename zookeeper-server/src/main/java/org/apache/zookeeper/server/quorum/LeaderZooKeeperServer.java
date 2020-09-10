@@ -95,42 +95,21 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     @Override
     protected void registerMetrics() {
         super.registerMetrics();
-
         MetricsContext rootContext = ServerMetrics.getMetrics().getMetricsProvider().getRootContext();
-
-        rootContext.registerGauge("learners", () -> {
-            return getLeader().getLearners().size();
-        });
-        rootContext.registerGauge("synced_followers", () -> {
-            return getLeader().getForwardingFollowers().size();
-        });
-        rootContext.registerGauge("synced_non_voting_followers", () -> {
-            return getLeader().getNonVotingFollowers().size();
-        });
-
+        rootContext.registerGauge("learners", () -> getLeader().getLearners().size());
+        rootContext.registerGauge("synced_followers", () -> getLeader().getForwardingFollowers().size());
+        rootContext.registerGauge("synced_non_voting_followers", () -> getLeader().getNonVotingFollowers().size());
         rootContext.registerGauge("synced_observers", self::getSynced_observers_metric);
-
-        rootContext.registerGauge("pending_syncs", () -> {
-            return getLeader().getNumPendingSyncs();
-        });
-        rootContext.registerGauge("leader_uptime", () -> {
-            return getLeader().getUptime();
-        });
-        rootContext.registerGauge("last_proposal_size", () -> {
-            return getLeader().getProposalStats().getLastBufferSize();
-        });
-        rootContext.registerGauge("max_proposal_size", () -> {
-            return getLeader().getProposalStats().getMaxBufferSize();
-        });
-        rootContext.registerGauge("min_proposal_size", () -> {
-            return getLeader().getProposalStats().getMinBufferSize();
-        });
+        rootContext.registerGauge("pending_syncs", () -> getLeader().getNumPendingSyncs());
+        rootContext.registerGauge("leader_uptime", () -> getLeader().getUptime());
+        rootContext.registerGauge("last_proposal_size", () -> getLeader().getProposalStats().getLastBufferSize());
+        rootContext.registerGauge("max_proposal_size", () -> getLeader().getProposalStats().getMaxBufferSize());
+        rootContext.registerGauge("min_proposal_size", () -> getLeader().getProposalStats().getMinBufferSize());
     }
 
     @Override
     protected void unregisterMetrics() {
         super.unregisterMetrics();
-
         MetricsContext rootContext = ServerMetrics.getMetrics().getMetricsProvider().getRootContext();
         rootContext.unregisterGauge("learners");
         rootContext.unregisterGauge("synced_followers");
@@ -138,7 +117,6 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
         rootContext.unregisterGauge("synced_observers");
         rootContext.unregisterGauge("pending_syncs");
         rootContext.unregisterGauge("leader_uptime");
-
         rootContext.unregisterGauge("last_proposal_size");
         rootContext.unregisterGauge("max_proposal_size");
         rootContext.unregisterGauge("min_proposal_size");

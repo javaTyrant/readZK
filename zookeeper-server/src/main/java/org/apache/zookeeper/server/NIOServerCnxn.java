@@ -32,6 +32,7 @@ import java.security.cert.Certificate;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.Record;
 import org.apache.zookeeper.WatchedEvent;
@@ -50,13 +51,14 @@ import org.slf4j.LoggerFactory;
 /**
  * This class handles communication with clients using NIO. There is one per
  * client, but only one thread doing the communication.
+ * 这个类使用Nio处理和客户端的通信.只有一个线程来处理和每个客户端的沟通.
  */
 public class NIOServerCnxn extends ServerCnxn {
 
     private static final Logger LOG = LoggerFactory.getLogger(NIOServerCnxn.class);
-
+    //
     private final NIOServerCnxnFactory factory;
-
+    //
     private final SocketChannel sock;
 
     private final SelectorThread selectorThread;
@@ -69,7 +71,7 @@ public class NIOServerCnxn extends ServerCnxn {
 
     private ByteBuffer incomingBuffer = lenBuffer;
 
-    private final Queue<ByteBuffer> outgoingBuffers = new LinkedBlockingQueue<ByteBuffer>();
+    private final Queue<ByteBuffer> outgoingBuffers = new LinkedBlockingQueue<>();
 
     private int sessionTimeout;
 
@@ -106,6 +108,7 @@ public class NIOServerCnxn extends ServerCnxn {
     /**
      * send buffer without using the asynchronous
      * calls to selector and then close the socket
+     *
      * @param bb
      */
     void sendBufferSync(ByteBuffer bb) {
@@ -154,13 +157,15 @@ public class NIOServerCnxn extends ServerCnxn {
         setStale();
         ServerMetrics.getMetrics().CONNECTION_DROP_COUNT.add(1);
         throw new EndOfStreamException("Unable to read additional data from client,"
-                                       + " it probably closed the socket:"
-                                       + " address = " + sock.socket().getRemoteSocketAddress() + ","
-                                       + " session = 0x" + Long.toHexString(sessionId),
-                                       DisconnectReason.UNABLE_TO_READ_FROM_CLIENT);
+                + " it probably closed the socket:"
+                + " address = " + sock.socket().getRemoteSocketAddress() + ","
+                + " session = 0x" + Long.toHexString(sessionId),
+                DisconnectReason.UNABLE_TO_READ_FROM_CLIENT);
     }
 
-    /** Read the request payload (everything following the length prefix) */
+    /**
+     * Read the request payload (everything following the length prefix)
+     */
     private void readPayload() throws IOException, InterruptedException, ClientCnxnLimitException {
         if (incomingBuffer.remaining() != 0) { // have we read length bytes?
             int rc = sock.read(incomingBuffer); // sock is non-blocking, so ok
@@ -308,6 +313,7 @@ public class NIOServerCnxn extends ServerCnxn {
 
     /**
      * Handles read/write IO on connection.
+     * 处理连接上的读写IO
      */
     void doIO(SelectionKey k) throws InterruptedException {
         try {
@@ -365,7 +371,7 @@ public class NIOServerCnxn extends ServerCnxn {
             ServerMetrics.getMetrics().CONNECTION_REJECTED.add(1);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Exception causing close of session 0x" + Long.toHexString(sessionId)
-                          + ": " + e.getMessage());
+                        + ": " + e.getMessage());
             }
             close(DisconnectReason.CLIENT_CNX_LIMIT);
         } catch (IOException e) {
@@ -377,6 +383,7 @@ public class NIOServerCnxn extends ServerCnxn {
     }
 
     private void readRequest() throws IOException {
+        //交给zkserver处理数据包了
         zkServer.processPacket(this, incomingBuffer);
     }
 
@@ -413,7 +420,8 @@ public class NIOServerCnxn extends ServerCnxn {
         }
     }
 
-    private void readConnectRequest() throws IOException, InterruptedException, ClientCnxnLimitException {
+    //读取连接请求
+    private void readConnectRequest() throws IOException, ClientCnxnLimitException {
         if (!isZKServerRunning()) {
             throw new IOException("ZooKeeperServer not running");
         }
@@ -433,6 +441,7 @@ public class NIOServerCnxn extends ServerCnxn {
 
         /**
          * Check if we are ready to send another chunk.
+         *
          * @param force force sending, even if not a full chunk
          */
         private void checkFlush(boolean force) {
@@ -464,7 +473,10 @@ public class NIOServerCnxn extends ServerCnxn {
         }
 
     }
-    /** Return if four letter word found and responded to, otw false **/
+
+    /**
+     * Return if four letter word found and responded to, otw false
+     **/
     private boolean checkFourLetterWord(final SelectionKey k, final int len) throws IOException {
         // We take advantage of the limited size of the length to look
         // for cmds. They are all 4-bytes which fits inside of an int
@@ -498,9 +510,9 @@ public class NIOServerCnxn extends ServerCnxn {
         if (!FourLetterCommands.isEnabled(cmd)) {
             LOG.debug("Command {} is not executed because it is not in the whitelist.", cmd);
             NopCommand nopCmd = new NopCommand(
-                pwriter,
-                this,
-                cmd + " is not executed because it is not in the whitelist.");
+                    pwriter,
+                    this,
+                    cmd + " is not executed because it is not in the whitelist.");
             nopCmd.start();
             return true;
         }
@@ -525,8 +537,9 @@ public class NIOServerCnxn extends ServerCnxn {
         }
     }
 
-    /** Reads the first 4 bytes of lenBuffer, which could be true length or
-     *  four letter word.
+    /**
+     * Reads the first 4 bytes of lenBuffer, which could be true length or
+     * four letter word.
      *
      * @param k selection key
      * @return true if length read, otw false (wasn't really the length)
@@ -616,8 +629,8 @@ public class NIOServerCnxn extends ServerCnxn {
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Closed socket connection for client "
-                      + sock.socket().getRemoteSocketAddress()
-                      + (sessionId != 0 ? " which had sessionid 0x" + Long.toHexString(sessionId) : " (no session established for client)"));
+                    + sock.socket().getRemoteSocketAddress()
+                    + (sessionId != 0 ? " which had sessionid 0x" + Long.toHexString(sessionId) : " (no session established for client)"));
         }
 
         closeSock(sock);
@@ -665,24 +678,24 @@ public class NIOServerCnxn extends ServerCnxn {
 
     /**
      * Serializes a ZooKeeper response and enqueues it for sending.
-     *
+     * <p>
      * Serializes client response parts and enqueues them into outgoing queue.
-     *
+     * <p>
      * If both cache key and last modified zxid are provided, the serialized
      * response is caсhed under the provided key, the last modified zxid is
      * stored along with the value. A cache entry is invalidated if the
      * provided last modified zxid is more recent than the stored one.
-     *
+     * <p>
      * Attention: this function is not thread safe, due to caching not being
      * thread safe.
      *
-     * @param h reply header
-     * @param r reply payload, can be null
-     * @param tag Jute serialization tag, can be null
+     * @param h        reply header
+     * @param r        reply payload, can be null
+     * @param tag      Jute serialization tag, can be null
      * @param cacheKey key for caching the serialized payload. a null value
-     *     prvents caching
-     * @param stat stat information for the the reply payload, used
-     *     for cache invalidation. a value of 0 prevents caching.
+     *                 prvents caching
+     * @param stat     stat information for the the reply payload, used
+     *                 for cache invalidation. a value of 0 prevents caching.
      */
     @Override
     public void sendResponse(ReplyHeader h, Record r, String tag, String cacheKey, Stat stat) {
@@ -704,9 +717,9 @@ public class NIOServerCnxn extends ServerCnxn {
         ReplyHeader h = new ReplyHeader(-1, -1L, 0);
         if (LOG.isTraceEnabled()) {
             ZooTrace.logTraceMessage(
-                LOG,
-                ZooTrace.EVENT_DELIVERY_TRACE_MASK,
-                "Deliver event " + event + " to 0x" + Long.toHexString(this.sessionId) + " through " + this);
+                    LOG,
+                    ZooTrace.EVENT_DELIVERY_TRACE_MASK,
+                    "Deliver event " + event + " to 0x" + Long.toHexString(this.sessionId) + " through " + this);
         }
 
         // Convert WatchedEvent to a type that can be sent over the wire

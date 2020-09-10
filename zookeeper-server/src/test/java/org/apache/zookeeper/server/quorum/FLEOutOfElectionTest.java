@@ -20,10 +20,12 @@ package org.apache.zookeeper.server.quorum;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.server.quorum.FastLeaderElection.Notification;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
@@ -65,6 +67,7 @@ public class FLEOutOfElectionTest {
     @Test
     public void testElectionWIthDifferentVersion() {
         Map<Long, Vote> votes = new HashMap<Long, Vote>();
+        //初始化四张选票
         votes.put(0L, new Vote(0x1, 4L, ZxidUtils.makeZxid(1, 1), 1, 1, ServerState.FOLLOWING));
         votes.put(1L, new Vote(0x1, 4L, ZxidUtils.makeZxid(1, 1), 1, 1, ServerState.FOLLOWING));
         votes.put(3L, new Vote(4L, ZxidUtils.makeZxid(2, 1), 2, 2, ServerState.FOLLOWING));

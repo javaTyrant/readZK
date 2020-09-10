@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -32,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.server.TxnLogProposalIterator;
 import org.apache.zookeeper.server.ZKDatabase;
@@ -180,10 +182,11 @@ public class LearnerHandlerTest extends ZKTestCase {
 
     /**
      * Check if op packet (first packet in the queue) match the expected value
-     * @param type - type of packet
-     * @param zxid - zxid in the op packet
+     *
+     * @param type        - type of packet
+     * @param zxid        - zxid in the op packet
      * @param currentZxid - last packet queued by syncFollower,
-     *                      before invoking startForwarding()
+     *                    before invoking startForwarding()
      */
     public void assertOpType(int type, long zxid, long currentZxid) {
         Queue<QuorumPacket> packets = learnerHandler.getQueuedPackets();
@@ -195,9 +198,9 @@ public class LearnerHandlerTest extends ZKTestCase {
 
     void assertZxidEquals(long expected, long value) {
         assertEquals("Expected 0x"
-                             + Long.toHexString(expected)
-                             + " but was 0x"
-                             + Long.toHexString(value), expected, value);
+                + Long.toHexString(expected)
+                + " but was 0x"
+                + Long.toHexString(value), expected, value);
     }
 
     /**
@@ -243,7 +246,7 @@ public class LearnerHandlerTest extends ZKTestCase {
      * Test cases when leader has committedLog
      */
     @Test
-    public void testCommittedLog() throws Exception {
+    public void testCommittedLog() {
         long peerZxid;
 
         // Commit proposal may lag behind data tree, but it shouldn't affect

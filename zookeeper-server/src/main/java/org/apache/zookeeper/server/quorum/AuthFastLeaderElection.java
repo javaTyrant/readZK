@@ -19,6 +19,7 @@
 package org.apache.zookeeper.server.quorum;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -36,6 +37,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.jmx.MBeanRegistry;
 import org.apache.zookeeper.server.ZooKeeperThread;
@@ -113,48 +115,48 @@ public class AuthFastLeaderElection implements Election {
         ToSend(mType type, long tag, long leader, long zxid, long epoch, ServerState state, InetSocketAddress addr) {
 
             switch (type) {
-            case crequest:
-                this.type = 0;
-                this.tag = tag;
-                this.leader = leader;
-                this.zxid = zxid;
-                this.epoch = epoch;
-                this.state = state;
-                this.addr = addr;
+                case crequest:
+                    this.type = 0;
+                    this.tag = tag;
+                    this.leader = leader;
+                    this.zxid = zxid;
+                    this.epoch = epoch;
+                    this.state = state;
+                    this.addr = addr;
 
-                break;
-            case challenge:
-                this.type = 1;
-                this.tag = tag;
-                this.leader = leader;
-                this.zxid = zxid;
-                this.epoch = epoch;
-                this.state = state;
-                this.addr = addr;
+                    break;
+                case challenge:
+                    this.type = 1;
+                    this.tag = tag;
+                    this.leader = leader;
+                    this.zxid = zxid;
+                    this.epoch = epoch;
+                    this.state = state;
+                    this.addr = addr;
 
-                break;
-            case notification:
-                this.type = 2;
-                this.leader = leader;
-                this.zxid = zxid;
-                this.epoch = epoch;
-                this.state = QuorumPeer.ServerState.LOOKING;
-                this.tag = tag;
-                this.addr = addr;
+                    break;
+                case notification:
+                    this.type = 2;
+                    this.leader = leader;
+                    this.zxid = zxid;
+                    this.epoch = epoch;
+                    this.state = QuorumPeer.ServerState.LOOKING;
+                    this.tag = tag;
+                    this.addr = addr;
 
-                break;
-            case ack:
-                this.type = 3;
-                this.tag = tag;
-                this.leader = leader;
-                this.zxid = zxid;
-                this.epoch = epoch;
-                this.state = state;
-                this.addr = addr;
+                    break;
+                case ack:
+                    this.type = 3;
+                    this.tag = tag;
+                    this.leader = leader;
+                    this.zxid = zxid;
+                    this.epoch = epoch;
+                    this.state = state;
+                    this.addr = addr;
 
-                break;
-            default:
-                break;
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -244,7 +246,7 @@ public class AuthFastLeaderElection implements Election {
                     // Receive new message
                     if (responsePacket.getLength() != responseBytes.length) {
                         LOG.warn("Got a short response: " + responsePacket.getLength()
-                                 + " " + responsePacket.toString());
+                                + " " + responsePacket.toString());
                         continue;
                     }
                     responseBuffer.clear();
@@ -257,140 +259,140 @@ public class AuthFastLeaderElection implements Election {
 
                     QuorumPeer.ServerState ackstate = QuorumPeer.ServerState.LOOKING;
                     switch (responseBuffer.getInt()) {
-                    case 0:
-                        ackstate = QuorumPeer.ServerState.LOOKING;
-                        break;
-                    case 1:
-                        ackstate = QuorumPeer.ServerState.LEADING;
-                        break;
-                    case 2:
-                        ackstate = QuorumPeer.ServerState.FOLLOWING;
-                        break;
-                    default:
-                        LOG.warn("unknown type " + responseBuffer.getInt());
-                        break;
+                        case 0:
+                            ackstate = QuorumPeer.ServerState.LOOKING;
+                            break;
+                        case 1:
+                            ackstate = QuorumPeer.ServerState.LEADING;
+                            break;
+                        case 2:
+                            ackstate = QuorumPeer.ServerState.FOLLOWING;
+                            break;
+                        default:
+                            LOG.warn("unknown type " + responseBuffer.getInt());
+                            break;
                     }
 
                     Vote current = self.getCurrentVote();
 
                     switch (type) {
-                    case 0:
-                        // Receive challenge request
-                        ToSend c = new ToSend(
-                            ToSend.mType.challenge,
-                            tag,
-                            current.getId(),
-                            current.getZxid(),
-                            logicalclock.get(),
-                            self.getPeerState(),
-                            (InetSocketAddress) responsePacket.getSocketAddress());
-                        sendqueue.offer(c);
-                        break;
-                    case 1:
-                        // Receive challenge and store somewhere else
-                        long challenge = responseBuffer.getLong();
-                        saveChallenge(tag, challenge);
+                        case 0:
+                            // Receive challenge request
+                            ToSend c = new ToSend(
+                                    ToSend.mType.challenge,
+                                    tag,
+                                    current.getId(),
+                                    current.getZxid(),
+                                    logicalclock.get(),
+                                    self.getPeerState(),
+                                    (InetSocketAddress) responsePacket.getSocketAddress());
+                            sendqueue.offer(c);
+                            break;
+                        case 1:
+                            // Receive challenge and store somewhere else
+                            long challenge = responseBuffer.getLong();
+                            saveChallenge(tag, challenge);
 
-                        break;
-                    case 2:
-                        Notification n = new Notification();
-                        n.leader = responseBuffer.getLong();
-                        n.zxid = responseBuffer.getLong();
-                        n.epoch = responseBuffer.getLong();
-                        n.state = ackstate;
-                        n.addr = (InetSocketAddress) responsePacket.getSocketAddress();
+                            break;
+                        case 2:
+                            Notification n = new Notification();
+                            n.leader = responseBuffer.getLong();
+                            n.zxid = responseBuffer.getLong();
+                            n.epoch = responseBuffer.getLong();
+                            n.state = ackstate;
+                            n.addr = (InetSocketAddress) responsePacket.getSocketAddress();
 
-                        if ((myMsg.lastEpoch <= n.epoch)
-                            && ((n.zxid > myMsg.lastProposedZxid)
-                                || ((n.zxid == myMsg.lastProposedZxid)
+                            if ((myMsg.lastEpoch <= n.epoch)
+                                    && ((n.zxid > myMsg.lastProposedZxid)
+                                    || ((n.zxid == myMsg.lastProposedZxid)
                                     && (n.leader > myMsg.lastProposedLeader)))) {
-                            myMsg.lastProposedZxid = n.zxid;
-                            myMsg.lastProposedLeader = n.leader;
-                            myMsg.lastEpoch = n.epoch;
-                        }
+                                myMsg.lastProposedZxid = n.zxid;
+                                myMsg.lastProposedLeader = n.leader;
+                                myMsg.lastEpoch = n.epoch;
+                            }
 
-                        long recChallenge;
-                        InetSocketAddress addr = (InetSocketAddress) responsePacket.getSocketAddress();
-                        if (authEnabled) {
-                            ConcurrentHashMap<Long, Long> tmpMap = addrChallengeMap.get(addr);
-                            if (tmpMap != null) {
-                                if (tmpMap.get(tag) != null) {
-                                    recChallenge = responseBuffer.getLong();
+                            long recChallenge;
+                            InetSocketAddress addr = (InetSocketAddress) responsePacket.getSocketAddress();
+                            if (authEnabled) {
+                                ConcurrentHashMap<Long, Long> tmpMap = addrChallengeMap.get(addr);
+                                if (tmpMap != null) {
+                                    if (tmpMap.get(tag) != null) {
+                                        recChallenge = responseBuffer.getLong();
 
-                                    if (tmpMap.get(tag) == recChallenge) {
-                                        recvqueue.offer(n);
+                                        if (tmpMap.get(tag) == recChallenge) {
+                                            recvqueue.offer(n);
 
-                                        ToSend a = new ToSend(
-                                            ToSend.mType.ack,
-                                            tag,
-                                            current.getId(),
-                                            current.getZxid(),
-                                            logicalclock.get(),
-                                            self.getPeerState(),
-                                            addr);
+                                            ToSend a = new ToSend(
+                                                    ToSend.mType.ack,
+                                                    tag,
+                                                    current.getId(),
+                                                    current.getZxid(),
+                                                    logicalclock.get(),
+                                                    self.getPeerState(),
+                                                    addr);
 
-                                        sendqueue.offer(a);
+                                            sendqueue.offer(a);
+                                        } else {
+                                            LOG.warn("Incorrect challenge: " + recChallenge + ", " + addrChallengeMap.toString());
+                                        }
                                     } else {
-                                        LOG.warn("Incorrect challenge: " + recChallenge + ", " + addrChallengeMap.toString());
+                                        LOG.warn("No challenge for host: " + addr + " " + tag);
                                     }
+                                }
+                            } else {
+                                recvqueue.offer(n);
+
+                                ToSend a = new ToSend(
+                                        ToSend.mType.ack,
+                                        tag,
+                                        current.getId(),
+                                        current.getZxid(),
+                                        logicalclock.get(),
+                                        self.getPeerState(),
+                                        (InetSocketAddress) responsePacket.getSocketAddress());
+
+                                sendqueue.offer(a);
+                            }
+                            break;
+
+                        // Upon reception of an ack message, remove it from the
+                        // queue
+                        case 3:
+                            Semaphore s = ackMutex.get(tag);
+
+                            if (s != null) {
+                                s.release();
+                            } else {
+                                LOG.error("Empty ack semaphore");
+                            }
+
+                            ackset.add(tag);
+
+                            if (authEnabled) {
+                                ConcurrentHashMap<Long, Long> tmpMap = addrChallengeMap.get(responsePacket.getSocketAddress());
+                                if (tmpMap != null) {
+                                    tmpMap.remove(tag);
                                 } else {
-                                    LOG.warn("No challenge for host: " + addr + " " + tag);
+                                    LOG.warn("No such address in the ensemble configuration " + responsePacket.getSocketAddress());
                                 }
                             }
-                        } else {
-                            recvqueue.offer(n);
 
-                            ToSend a = new ToSend(
-                                ToSend.mType.ack,
-                                tag,
-                                current.getId(),
-                                current.getZxid(),
-                                logicalclock.get(),
-                                self.getPeerState(),
-                                (InetSocketAddress) responsePacket.getSocketAddress());
+                            if (ackstate != QuorumPeer.ServerState.LOOKING) {
+                                Notification outofsync = new Notification();
+                                outofsync.leader = responseBuffer.getLong();
+                                outofsync.zxid = responseBuffer.getLong();
+                                outofsync.epoch = responseBuffer.getLong();
+                                outofsync.state = ackstate;
+                                outofsync.addr = (InetSocketAddress) responsePacket.getSocketAddress();
 
-                            sendqueue.offer(a);
-                        }
-                        break;
-
-                    // Upon reception of an ack message, remove it from the
-                    // queue
-                    case 3:
-                        Semaphore s = ackMutex.get(tag);
-
-                        if (s != null) {
-                            s.release();
-                        } else {
-                            LOG.error("Empty ack semaphore");
-                        }
-
-                        ackset.add(tag);
-
-                        if (authEnabled) {
-                            ConcurrentHashMap<Long, Long> tmpMap = addrChallengeMap.get(responsePacket.getSocketAddress());
-                            if (tmpMap != null) {
-                                tmpMap.remove(tag);
-                            } else {
-                                LOG.warn("No such address in the ensemble configuration " + responsePacket.getSocketAddress());
+                                recvqueue.offer(outofsync);
                             }
-                        }
 
-                        if (ackstate != QuorumPeer.ServerState.LOOKING) {
-                            Notification outofsync = new Notification();
-                            outofsync.leader = responseBuffer.getLong();
-                            outofsync.zxid = responseBuffer.getLong();
-                            outofsync.epoch = responseBuffer.getLong();
-                            outofsync.state = ackstate;
-                            outofsync.addr = (InetSocketAddress) responsePacket.getSocketAddress();
-
-                            recvqueue.offer(outofsync);
-                        }
-
-                        break;
-                    // Default case
-                    default:
-                        LOG.warn("Received message of incorrect type " + type);
-                        break;
+                            break;
+                        // Default case
+                        default:
+                            LOG.warn("Received message of incorrect type " + type);
+                            break;
                     }
                 }
             }
@@ -430,13 +432,13 @@ public class AuthFastLeaderElection implements Election {
                 buf[7] = (byte) ((secret & 0x000000ff));
 
                 return (((long) (buf[0] & 0xFF)) << 56)
-                       + (((long) (buf[1] & 0xFF)) << 48)
-                       + (((long) (buf[2] & 0xFF)) << 40)
-                       + (((long) (buf[3] & 0xFF)) << 32)
-                       + (((long) (buf[4] & 0xFF)) << 24)
-                       + (((long) (buf[5] & 0xFF)) << 16)
-                       + (((long) (buf[6] & 0xFF)) << 8)
-                       + ((long) (buf[7] & 0xFF));
+                        + (((long) (buf[1] & 0xFF)) << 48)
+                        + (((long) (buf[2] & 0xFF)) << 40)
+                        + (((long) (buf[3] & 0xFF)) << 32)
+                        + (((long) (buf[4] & 0xFF)) << 24)
+                        + (((long) (buf[5] & 0xFF)) << 16)
+                        + (((long) (buf[6] & 0xFF)) << 8)
+                        + ((long) (buf[7] & 0xFF));
             }
 
             public void run() {
@@ -452,8 +454,8 @@ public class AuthFastLeaderElection implements Election {
             }
 
             @SuppressFBWarnings(
-                value = "RV_RETURN_VALUE_IGNORED",
-                justification = "tryAcquire result not chacked, but it is not an issue")
+                    value = "RV_RETURN_VALUE_IGNORED",
+                    justification = "tryAcquire result not chacked, but it is not an issue")
             private void process(ToSend m) {
                 int attempts = 0;
                 byte[] zeroes;
@@ -462,60 +464,15 @@ public class AuthFastLeaderElection implements Election {
                 ByteBuffer requestBuffer = ByteBuffer.wrap(requestBytes);
 
                 switch (m.type) {
-                case 0:
-                    /*
-                     * Building challenge request packet to send
-                     */
-                    requestBuffer.clear();
-                    requestBuffer.putInt(ToSend.mType.crequest.ordinal());
-                    requestBuffer.putLong(m.tag);
-                    requestBuffer.putInt(m.state.ordinal());
-                    zeroes = new byte[32];
-                    requestBuffer.put(zeroes);
-
-                    requestPacket.setLength(48);
-                    try {
-                        requestPacket.setSocketAddress(m.addr);
-                    } catch (IllegalArgumentException e) {
-                        // Sun doesn't include the address that causes this
-                        // exception to be thrown, so we wrap the exception
-                        // in order to capture this critical detail.
-                        throw new IllegalArgumentException("Unable to set socket address on packet, msg:" + e.getMessage()
-                                                           + " with addr:" + m.addr, e);
-                    }
-
-                    try {
-                        if (challengeMap.get(m.tag) == null) {
-                            mySocket.send(requestPacket);
-                        }
-                    } catch (IOException e) {
-                        LOG.warn("Exception while sending challenge: ", e);
-                    }
-
-                    break;
-                case 1:
-                    /*
-                     * Building challenge packet to send
-                     */
-
-                    long newChallenge;
-                    ConcurrentHashMap<Long, Long> tmpMap = addrChallengeMap.get(m.addr);
-                    if (tmpMap != null) {
-                        Long tmpLong = tmpMap.get(m.tag);
-                        if (tmpLong != null) {
-                            newChallenge = tmpLong;
-                        } else {
-                            newChallenge = genChallenge();
-                        }
-
-                        tmpMap.put(m.tag, newChallenge);
-
+                    case 0:
+                        /*
+                         * Building challenge request packet to send
+                         */
                         requestBuffer.clear();
-                        requestBuffer.putInt(ToSend.mType.challenge.ordinal());
+                        requestBuffer.putInt(ToSend.mType.crequest.ordinal());
                         requestBuffer.putLong(m.tag);
                         requestBuffer.putInt(m.state.ordinal());
-                        requestBuffer.putLong(newChallenge);
-                        zeroes = new byte[24];
+                        zeroes = new byte[32];
                         requestBuffer.put(zeroes);
 
                         requestPacket.setLength(48);
@@ -526,170 +483,215 @@ public class AuthFastLeaderElection implements Election {
                             // exception to be thrown, so we wrap the exception
                             // in order to capture this critical detail.
                             throw new IllegalArgumentException("Unable to set socket address on packet, msg:" + e.getMessage()
-                                                               + " with addr:" + m.addr, e);
+                                    + " with addr:" + m.addr, e);
                         }
 
                         try {
-                            mySocket.send(requestPacket);
+                            if (challengeMap.get(m.tag) == null) {
+                                mySocket.send(requestPacket);
+                            }
                         } catch (IOException e) {
                             LOG.warn("Exception while sending challenge: ", e);
                         }
-                    } else {
-                        LOG.error("Address is not in the configuration: " + m.addr);
-                    }
 
-                    break;
-                case 2:
+                        break;
+                    case 1:
+                        /*
+                         * Building challenge packet to send
+                         */
 
-                    /*
-                     * Building notification packet to send
-                     */
-
-                    requestBuffer.clear();
-                    requestBuffer.putInt(m.type);
-                    requestBuffer.putLong(m.tag);
-                    requestBuffer.putInt(m.state.ordinal());
-                    requestBuffer.putLong(m.leader);
-                    requestBuffer.putLong(m.zxid);
-                    requestBuffer.putLong(m.epoch);
-                    zeroes = new byte[8];
-                    requestBuffer.put(zeroes);
-
-                    requestPacket.setLength(48);
-                    try {
-                        requestPacket.setSocketAddress(m.addr);
-                    } catch (IllegalArgumentException e) {
-                        // Sun doesn't include the address that causes this
-                        // exception to be thrown, so we wrap the exception
-                        // in order to capture this critical detail.
-                        throw new IllegalArgumentException("Unable to set socket address on packet, msg:" + e.getMessage()
-                                                           + " with addr:" + m.addr, e);
-                    }
-
-                    boolean myChallenge = false;
-                    boolean myAck = false;
-
-                    while (attempts < maxAttempts) {
-                        try {
-                            /*
-                             * Try to obtain a challenge only if does not have
-                             * one yet
-                             */
-
-                            if (!myChallenge && authEnabled) {
-                                ToSend crequest = new ToSend(
-                                    ToSend.mType.crequest,
-                                    m.tag,
-                                    m.leader,
-                                    m.zxid,
-                                    m.epoch,
-                                    QuorumPeer.ServerState.LOOKING,
-                                    m.addr);
-                                sendqueue.offer(crequest);
-
-                                try {
-                                    double timeout = ackWait * java.lang.Math.pow(2, attempts);
-
-                                    Semaphore s = new Semaphore(0);
-                                    synchronized (Messenger.this) {
-                                        challengeMutex.put(m.tag, s);
-                                        s.tryAcquire((long) timeout, TimeUnit.MILLISECONDS);
-                                        myChallenge = challengeMap.containsKey(m.tag);
-                                    }
-                                } catch (InterruptedException e) {
-                                    LOG.warn("Challenge request exception: ", e);
-                                }
+                        long newChallenge;
+                        ConcurrentHashMap<Long, Long> tmpMap = addrChallengeMap.get(m.addr);
+                        if (tmpMap != null) {
+                            Long tmpLong = tmpMap.get(m.tag);
+                            if (tmpLong != null) {
+                                newChallenge = tmpLong;
+                            } else {
+                                newChallenge = genChallenge();
                             }
 
-                            /*
-                             * If don't have challenge yet, skip sending
-                             * notification
-                             */
+                            tmpMap.put(m.tag, newChallenge);
 
-                            if (authEnabled && !myChallenge) {
-                                attempts++;
-                                continue;
-                            }
+                            requestBuffer.clear();
+                            requestBuffer.putInt(ToSend.mType.challenge.ordinal());
+                            requestBuffer.putLong(m.tag);
+                            requestBuffer.putInt(m.state.ordinal());
+                            requestBuffer.putLong(newChallenge);
+                            zeroes = new byte[24];
+                            requestBuffer.put(zeroes);
 
-                            if (authEnabled) {
-                                requestBuffer.position(40);
-                                Long tmpLong = challengeMap.get(m.tag);
-                                if (tmpLong != null) {
-                                    requestBuffer.putLong(tmpLong);
-                                } else {
-                                    LOG.warn("No challenge with tag: " + m.tag);
-                                }
-                            }
-                            mySocket.send(requestPacket);
+                            requestPacket.setLength(48);
                             try {
-                                Semaphore s = new Semaphore(0);
-                                double timeout = ackWait * java.lang.Math.pow(10, attempts);
-                                ackMutex.put(m.tag, s);
-                                s.tryAcquire((int) timeout, TimeUnit.MILLISECONDS);
-                            } catch (InterruptedException e) {
-                                LOG.warn("Ack exception: ", e);
+                                requestPacket.setSocketAddress(m.addr);
+                            } catch (IllegalArgumentException e) {
+                                // Sun doesn't include the address that causes this
+                                // exception to be thrown, so we wrap the exception
+                                // in order to capture this critical detail.
+                                throw new IllegalArgumentException("Unable to set socket address on packet, msg:" + e.getMessage()
+                                        + " with addr:" + m.addr, e);
                             }
 
-                            if (ackset.remove(m.tag)) {
-                                myAck = true;
+                            try {
+                                mySocket.send(requestPacket);
+                            } catch (IOException e) {
+                                LOG.warn("Exception while sending challenge: ", e);
                             }
-
-                        } catch (IOException e) {
-                            LOG.warn("Sending exception: ", e);
-                            /*
-                             * Do nothing, just try again
-                             */
-                        }
-                        if (myAck) {
-                            /*
-                             * Received ack successfully, so return
-                             */
-                            challengeMap.remove(m.tag);
-
-                            return;
                         } else {
-                            attempts++;
+                            LOG.error("Address is not in the configuration: " + m.addr);
                         }
-                    }
-                    /*
-                     * Return message to queue for another attempt later if
-                     * epoch hasn't changed.
-                     */
-                    if (m.epoch == logicalclock.get()) {
-                        challengeMap.remove(m.tag);
-                        sendqueue.offer(m);
-                    }
-                    break;
-                case 3:
 
-                    requestBuffer.clear();
-                    requestBuffer.putInt(m.type);
-                    requestBuffer.putLong(m.tag);
-                    requestBuffer.putInt(m.state.ordinal());
-                    requestBuffer.putLong(m.leader);
-                    requestBuffer.putLong(m.zxid);
-                    requestBuffer.putLong(m.epoch);
+                        break;
+                    case 2:
 
-                    requestPacket.setLength(48);
-                    try {
-                        requestPacket.setSocketAddress(m.addr);
-                    } catch (IllegalArgumentException e) {
-                        // Sun doesn't include the address that causes this
-                        // exception to be thrown, so we wrap the exception
-                        // in order to capture this critical detail.
-                        throw new IllegalArgumentException("Unable to set socket address on packet, msg:" + e.getMessage()
-                                                           + " with addr:" + m.addr, e);
-                    }
+                        /*
+                         * Building notification packet to send
+                         */
 
-                    try {
-                        mySocket.send(requestPacket);
-                    } catch (IOException e) {
-                        LOG.warn("Exception while sending ack: ", e);
-                    }
-                    break;
-                default:
-                    LOG.warn("unknown type " + m.type);
-                    break;
+                        requestBuffer.clear();
+                        requestBuffer.putInt(m.type);
+                        requestBuffer.putLong(m.tag);
+                        requestBuffer.putInt(m.state.ordinal());
+                        requestBuffer.putLong(m.leader);
+                        requestBuffer.putLong(m.zxid);
+                        requestBuffer.putLong(m.epoch);
+                        zeroes = new byte[8];
+                        requestBuffer.put(zeroes);
+
+                        requestPacket.setLength(48);
+                        try {
+                            requestPacket.setSocketAddress(m.addr);
+                        } catch (IllegalArgumentException e) {
+                            // Sun doesn't include the address that causes this
+                            // exception to be thrown, so we wrap the exception
+                            // in order to capture this critical detail.
+                            throw new IllegalArgumentException("Unable to set socket address on packet, msg:" + e.getMessage()
+                                    + " with addr:" + m.addr, e);
+                        }
+
+                        boolean myChallenge = false;
+                        boolean myAck = false;
+
+                        while (attempts < maxAttempts) {
+                            try {
+                                /*
+                                 * Try to obtain a challenge only if does not have
+                                 * one yet
+                                 */
+
+                                if (!myChallenge && authEnabled) {
+                                    ToSend crequest = new ToSend(
+                                            ToSend.mType.crequest,
+                                            m.tag,
+                                            m.leader,
+                                            m.zxid,
+                                            m.epoch,
+                                            QuorumPeer.ServerState.LOOKING,
+                                            m.addr);
+                                    sendqueue.offer(crequest);
+
+                                    try {
+                                        double timeout = ackWait * java.lang.Math.pow(2, attempts);
+
+                                        Semaphore s = new Semaphore(0);
+                                        synchronized (Messenger.this) {
+                                            challengeMutex.put(m.tag, s);
+                                            s.tryAcquire((long) timeout, TimeUnit.MILLISECONDS);
+                                            myChallenge = challengeMap.containsKey(m.tag);
+                                        }
+                                    } catch (InterruptedException e) {
+                                        LOG.warn("Challenge request exception: ", e);
+                                    }
+                                }
+
+                                /*
+                                 * If don't have challenge yet, skip sending
+                                 * notification
+                                 */
+
+                                if (authEnabled && !myChallenge) {
+                                    attempts++;
+                                    continue;
+                                }
+
+                                if (authEnabled) {
+                                    requestBuffer.position(40);
+                                    Long tmpLong = challengeMap.get(m.tag);
+                                    if (tmpLong != null) {
+                                        requestBuffer.putLong(tmpLong);
+                                    } else {
+                                        LOG.warn("No challenge with tag: " + m.tag);
+                                    }
+                                }
+                                mySocket.send(requestPacket);
+                                try {
+                                    Semaphore s = new Semaphore(0);
+                                    double timeout = ackWait * java.lang.Math.pow(10, attempts);
+                                    ackMutex.put(m.tag, s);
+                                    s.tryAcquire((int) timeout, TimeUnit.MILLISECONDS);
+                                } catch (InterruptedException e) {
+                                    LOG.warn("Ack exception: ", e);
+                                }
+
+                                if (ackset.remove(m.tag)) {
+                                    myAck = true;
+                                }
+
+                            } catch (IOException e) {
+                                LOG.warn("Sending exception: ", e);
+                                /*
+                                 * Do nothing, just try again
+                                 */
+                            }
+                            if (myAck) {
+                                /*
+                                 * Received ack successfully, so return
+                                 */
+                                challengeMap.remove(m.tag);
+
+                                return;
+                            } else {
+                                attempts++;
+                            }
+                        }
+                        /*
+                         * Return message to queue for another attempt later if
+                         * epoch hasn't changed.
+                         */
+                        if (m.epoch == logicalclock.get()) {
+                            challengeMap.remove(m.tag);
+                            sendqueue.offer(m);
+                        }
+                        break;
+                    case 3:
+
+                        requestBuffer.clear();
+                        requestBuffer.putInt(m.type);
+                        requestBuffer.putLong(m.tag);
+                        requestBuffer.putInt(m.state.ordinal());
+                        requestBuffer.putLong(m.leader);
+                        requestBuffer.putLong(m.zxid);
+                        requestBuffer.putLong(m.epoch);
+
+                        requestPacket.setLength(48);
+                        try {
+                            requestPacket.setSocketAddress(m.addr);
+                        } catch (IllegalArgumentException e) {
+                            // Sun doesn't include the address that causes this
+                            // exception to be thrown, so we wrap the exception
+                            // in order to capture this critical detail.
+                            throw new IllegalArgumentException("Unable to set socket address on packet, msg:" + e.getMessage()
+                                    + " with addr:" + m.addr, e);
+                        }
+
+                        try {
+                            mySocket.send(requestPacket);
+                        } catch (IOException e) {
+                            LOG.warn("Exception while sending ack: ", e);
+                        }
+                        break;
+                    default:
+                        LOG.warn("unknown type " + m.type);
+                        break;
                 }
             }
 
@@ -765,13 +767,13 @@ public class AuthFastLeaderElection implements Election {
         for (QuorumServer server : self.getView().values()) {
 
             ToSend notmsg = new ToSend(
-                ToSend.mType.notification,
-                AuthFastLeaderElection.sequencer++,
-                proposedLeader,
-                proposedZxid,
-                logicalclock.get(),
-                QuorumPeer.ServerState.LOOKING,
-                self.getView().get(server.id).electionAddr);
+                    ToSend.mType.notification,
+                    AuthFastLeaderElection.sequencer++,
+                    proposedLeader,
+                    proposedZxid,
+                    logicalclock.get(),
+                    QuorumPeer.ServerState.LOOKING,
+                    self.getView().get(server.id).electionAddr);
 
             sendqueue.offer(notmsg);
         }
@@ -809,12 +811,15 @@ public class AuthFastLeaderElection implements Election {
 
     /**
      * Invoked in QuorumPeer to find or elect a new leader.
+     * 在QuorumPeer被调用,寻找或选举一个新的leader
      *
      * @throws InterruptedException
      */
     public Vote lookForLeader() throws InterruptedException {
         try {
+            //新建一个bean
             self.jmxLeaderElectionBean = new LeaderElectionBean();
+            //注册bean
             MBeanRegistry.getInstance().register(self.jmxLeaderElectionBean, self.jmxLocalPeerBean);
         } catch (Exception e) {
             LOG.warn("Failed to register with JMX", e);
@@ -822,9 +827,9 @@ public class AuthFastLeaderElection implements Election {
         }
 
         try {
-            HashMap<InetSocketAddress, Vote> recvset = new HashMap<InetSocketAddress, Vote>();
+            HashMap<InetSocketAddress, Vote> recvset = new HashMap<>();
 
-            HashMap<InetSocketAddress, Vote> outofelection = new HashMap<InetSocketAddress, Vote>();
+            HashMap<InetSocketAddress, Vote> outofelection = new HashMap<>();
 
             logicalclock.incrementAndGet();
 
@@ -855,85 +860,85 @@ public class AuthFastLeaderElection implements Election {
                     }
                 } else {
                     switch (n.state) {
-                    case LOOKING:
-                        if (n.epoch > logicalclock.get()) {
-                            logicalclock.set(n.epoch);
-                            recvset.clear();
-                            if (totalOrderPredicate(n.leader, n.zxid)) {
+                        case LOOKING:
+                            if (n.epoch > logicalclock.get()) {
+                                logicalclock.set(n.epoch);
+                                recvset.clear();
+                                if (totalOrderPredicate(n.leader, n.zxid)) {
+                                    proposedLeader = n.leader;
+                                    proposedZxid = n.zxid;
+                                }
+                                sendNotifications();
+                            } else if (n.epoch < logicalclock.get()) {
+                                break;
+                            } else if (totalOrderPredicate(n.leader, n.zxid)) {
                                 proposedLeader = n.leader;
                                 proposedZxid = n.zxid;
+
+                                sendNotifications();
                             }
-                            sendNotifications();
-                        } else if (n.epoch < logicalclock.get()) {
-                            break;
-                        } else if (totalOrderPredicate(n.leader, n.zxid)) {
-                            proposedLeader = n.leader;
-                            proposedZxid = n.zxid;
 
-                            sendNotifications();
-                        }
+                            recvset.put(n.addr, new Vote(n.leader, n.zxid));
 
-                        recvset.put(n.addr, new Vote(n.leader, n.zxid));
-
-                        // If have received from all nodes, then terminate
-                        if (self.getVotingView().size() == recvset.size()) {
-                            self.setPeerState((proposedLeader == self.getId())
-                                                  ? ServerState.LEADING
-                                                  : ServerState.FOLLOWING);
-                            // if (self.state == ServerState.FOLLOWING) {
-                            // Thread.sleep(100);
-                            // }
-                            leaveInstance();
-                            return new Vote(proposedLeader, proposedZxid);
-
-                        } else if (termPredicate(recvset, proposedLeader, proposedZxid)) {
-                            // Otherwise, wait for a fixed amount of time
-                            LOG.info("Passed predicate");
-                            Thread.sleep(finalizeWait);
-
-                            // Notification probe = recvqueue.peek();
-
-                            // Verify if there is any change in the proposed leader
-                            while ((!recvqueue.isEmpty())
-                                   && !totalOrderPredicate(recvqueue.peek().leader, recvqueue.peek().zxid)) {
-                                recvqueue.poll();
-                            }
-                            if (recvqueue.isEmpty()) {
-                                // LOG.warn("Proposed leader: " +
-                                // proposedLeader);
+                            // If have received from all nodes, then terminate
+                            if (self.getVotingView().size() == recvset.size()) {
                                 self.setPeerState((proposedLeader == self.getId())
-                                                      ? ServerState.LEADING
-                                                      : ServerState.FOLLOWING);
-
+                                        ? ServerState.LEADING
+                                        : ServerState.FOLLOWING);
+                                // if (self.state == ServerState.FOLLOWING) {
+                                // Thread.sleep(100);
+                                // }
                                 leaveInstance();
                                 return new Vote(proposedLeader, proposedZxid);
+
+                            } else if (termPredicate(recvset, proposedLeader, proposedZxid)) {
+                                // Otherwise, wait for a fixed amount of time
+                                LOG.info("Passed predicate");
+                                Thread.sleep(finalizeWait);
+
+                                // Notification probe = recvqueue.peek();
+
+                                // Verify if there is any change in the proposed leader
+                                while ((!recvqueue.isEmpty())
+                                        && !totalOrderPredicate(recvqueue.peek().leader, recvqueue.peek().zxid)) {
+                                    recvqueue.poll();
+                                }
+                                if (recvqueue.isEmpty()) {
+                                    // LOG.warn("Proposed leader: " +
+                                    // proposedLeader);
+                                    self.setPeerState((proposedLeader == self.getId())
+                                            ? ServerState.LEADING
+                                            : ServerState.FOLLOWING);
+
+                                    leaveInstance();
+                                    return new Vote(proposedLeader, proposedZxid);
+                                }
                             }
-                        }
-                        break;
-                    case LEADING:
-                        outofelection.put(n.addr, new Vote(n.leader, n.zxid));
+                            break;
+                        case LEADING:
+                            outofelection.put(n.addr, new Vote(n.leader, n.zxid));
 
-                        if (termPredicate(outofelection, n.leader, n.zxid)) {
+                            if (termPredicate(outofelection, n.leader, n.zxid)) {
 
-                            self.setPeerState((n.leader == self.getId()) ? ServerState.LEADING : ServerState.FOLLOWING);
+                                self.setPeerState((n.leader == self.getId()) ? ServerState.LEADING : ServerState.FOLLOWING);
 
-                            leaveInstance();
-                            return new Vote(n.leader, n.zxid);
-                        }
-                        break;
-                    case FOLLOWING:
-                        outofelection.put(n.addr, new Vote(n.leader, n.zxid));
+                                leaveInstance();
+                                return new Vote(n.leader, n.zxid);
+                            }
+                            break;
+                        case FOLLOWING:
+                            outofelection.put(n.addr, new Vote(n.leader, n.zxid));
 
-                        if (termPredicate(outofelection, n.leader, n.zxid)) {
+                            if (termPredicate(outofelection, n.leader, n.zxid)) {
 
-                            self.setPeerState((n.leader == self.getId()) ? ServerState.LEADING : ServerState.FOLLOWING);
+                                self.setPeerState((n.leader == self.getId()) ? ServerState.LEADING : ServerState.FOLLOWING);
 
-                            leaveInstance();
-                            return new Vote(n.leader, n.zxid);
-                        }
-                        break;
-                    default:
-                        break;
+                                leaveInstance();
+                                return new Vote(n.leader, n.zxid);
+                            }
+                            break;
+                        default:
+                            break;
                     }
                 }
             }

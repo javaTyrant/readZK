@@ -19,6 +19,7 @@
 package org.apache.zookeeper.server.watch;
 
 import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +43,7 @@ public class WatchManagerFactory {
             LOG.info("Using {} as watch manager", watchManagerName);
             return watchManager;
         } catch (Exception e) {
-            IOException ioe = new IOException("Couldn't instantiate " + watchManagerName, e);
-            throw ioe;
+            throw new IOException("Couldn't instantiate " + watchManagerName, e);
         }
     }
 

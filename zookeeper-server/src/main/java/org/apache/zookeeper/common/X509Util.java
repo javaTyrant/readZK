@@ -47,6 +47,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
+
 import org.apache.zookeeper.common.X509Exception.KeyManagerException;
 import org.apache.zookeeper.common.X509Exception.SSLContextException;
 import org.apache.zookeeper.common.X509Exception.TrustManagerException;
@@ -54,12 +55,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * X509证书工具类
  * Utility code for X509 handling
- *
+ * <p>
  * Default cipher suites:
- *
- *   Performance testing done by Facebook engineers shows that on Intel x86_64 machines, Java9 performs better with
- *   GCM and Java8 performs better with CBC, so these seem like reasonable defaults.
+ * <p>
+ * Performance testing done by Facebook engineers shows that on Intel x86_64 machines, Java9 performs better with
+ * GCM and Java8 performs better with CBC, so these seem like reasonable defaults.
  */
 public abstract class X509Util implements Closeable, AutoCloseable {
 
@@ -80,6 +82,7 @@ public abstract class X509Util implements Closeable, AutoCloseable {
     }
 
     public static final String DEFAULT_PROTOCOL = "TLSv1.2";
+
     private static String[] getGCMCiphers() {
         return new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"};
     }
@@ -106,11 +109,11 @@ public abstract class X509Util implements Closeable, AutoCloseable {
     /**
      * Enum specifying the client auth requirement of server-side TLS sockets created by this X509Util.
      * <ul>
-     *     <li>NONE - do not request a client certificate.</li>
-     *     <li>WANT - request a client certificate, but allow anonymous clients to connect.</li>
-     *     <li>NEED - require a client certificate, disconnect anonymous clients.</li>
+     * <li>NONE - do not request a client certificate.</li>
+     * <li>WANT - request a client certificate, but allow anonymous clients to connect.</li>
+     * <li>NEED - require a client certificate, disconnect anonymous clients.</li>
      * </ul>
-     *
+     * <p>
      * If the config property is not set, the default value is NEED.
      */
     public enum ClientAuth {
@@ -127,6 +130,7 @@ public abstract class X509Util implements Closeable, AutoCloseable {
         /**
          * Converts a property value to a ClientAuth enum. If the input string is empty or null, returns
          * <code>ClientAuth.NEED</code>.
+         *
          * @param prop the property string.
          * @return the ClientAuth.
          * @throws IllegalArgumentException if the property value is not "NONE", "WANT", "NEED", or empty/null.
@@ -314,16 +318,16 @@ public abstract class X509Util implements Closeable, AutoCloseable {
                 Supplier<SSLContext> sslContextSupplier = (Supplier<SSLContext>) sslContextClass.getConstructor().newInstance();
                 return new SSLContextAndOptions(this, config, sslContextSupplier.get());
             } catch (ClassNotFoundException
-                | ClassCastException
-                | NoSuchMethodException
-                | InvocationTargetException
-                | InstantiationException
-                | IllegalAccessException e) {
+                    | ClassCastException
+                    | NoSuchMethodException
+                    | InvocationTargetException
+                    | InstantiationException
+                    | IllegalAccessException e) {
                 throw new SSLContextException("Could not retrieve the SSLContext from supplier source '"
-                                              + supplierContextClassName
-                                              + "' provided in the property '"
-                                              + sslContextSupplierClassProperty
-                                              + "'", e);
+                        + supplierContextClassName
+                        + "' provided in the property '"
+                        + sslContextSupplierClassProperty
+                        + "'", e);
             }
         } else {
             return createSSLContextAndOptionsFromConfig(config);
@@ -372,9 +376,9 @@ public abstract class X509Util implements Closeable, AutoCloseable {
                 throw new SSLContextException("Failed to create TrustManager", trustManagerException);
             } catch (IllegalArgumentException e) {
                 throw new SSLContextException("Bad value for "
-                                              + sslTruststoreTypeProperty
-                                              + ": "
-                                              + trustStoreTypeProp, e);
+                        + sslTruststoreTypeProperty
+                        + ": "
+                        + trustStoreTypeProp, e);
             }
         }
 
@@ -389,34 +393,35 @@ public abstract class X509Util implements Closeable, AutoCloseable {
     }
 
     public static KeyStore loadKeyStore(
-        String keyStoreLocation,
-        String keyStorePassword,
-        String keyStoreTypeProp) throws IOException, GeneralSecurityException {
+            String keyStoreLocation,
+            String keyStorePassword,
+            String keyStoreTypeProp) throws IOException, GeneralSecurityException {
         KeyStoreFileType storeFileType = KeyStoreFileType.fromPropertyValueOrFileName(keyStoreTypeProp, keyStoreLocation);
         return FileKeyStoreLoaderBuilderProvider
-            .getBuilderForKeyStoreFileType(storeFileType)
-            .setKeyStorePath(keyStoreLocation)
-            .setKeyStorePassword(keyStorePassword)
-            .build()
-            .loadKeyStore();
+                .getBuilderForKeyStoreFileType(storeFileType)
+                .setKeyStorePath(keyStoreLocation)
+                .setKeyStorePassword(keyStorePassword)
+                .build()
+                .loadKeyStore();
     }
 
     public static KeyStore loadTrustStore(
-        String trustStoreLocation,
-        String trustStorePassword,
-        String trustStoreTypeProp) throws IOException, GeneralSecurityException {
+            String trustStoreLocation,
+            String trustStorePassword,
+            String trustStoreTypeProp) throws IOException, GeneralSecurityException {
         KeyStoreFileType storeFileType = KeyStoreFileType.fromPropertyValueOrFileName(trustStoreTypeProp, trustStoreLocation);
         return FileKeyStoreLoaderBuilderProvider
-            .getBuilderForKeyStoreFileType(storeFileType)
-            .setTrustStorePath(trustStoreLocation)
-            .setTrustStorePassword(trustStorePassword)
-            .build()
-            .loadTrustStore();
+                .getBuilderForKeyStoreFileType(storeFileType)
+                .setTrustStorePath(trustStoreLocation)
+                .setTrustStorePassword(trustStorePassword)
+                .build()
+                .loadTrustStore();
     }
 
     /**
      * Creates a key manager by loading the key store from the given file of
      * the given type, optionally decrypting it using the given password.
+     *
      * @param keyStoreLocation the location of the key store file.
      * @param keyStorePassword optional password to decrypt the key store. If
      *                         empty, assumes the key store is not encrypted.
@@ -427,9 +432,9 @@ public abstract class X509Util implements Closeable, AutoCloseable {
      * @throws KeyManagerException if something goes wrong.
      */
     public static X509KeyManager createKeyManager(
-        String keyStoreLocation,
-        String keyStorePassword,
-        String keyStoreTypeProp) throws KeyManagerException {
+            String keyStoreLocation,
+            String keyStorePassword,
+            String keyStoreTypeProp) throws KeyManagerException {
         if (keyStorePassword == null) {
             keyStorePassword = "";
         }
@@ -452,16 +457,17 @@ public abstract class X509Util implements Closeable, AutoCloseable {
     /**
      * Creates a trust manager by loading the trust store from the given file
      * of the given type, optionally decrypting it using the given password.
-     * @param trustStoreLocation the location of the trust store file.
-     * @param trustStorePassword optional password to decrypt the trust store
-     *                           (only applies to JKS trust stores). If empty,
-     *                           assumes the trust store is not encrypted.
-     * @param trustStoreTypeProp must be JKS, PEM, or null. If null, attempts
-     *                           to autodetect the trust store type from the
-     *                           file extension (.jks / .pem).
-     * @param crlEnabled enable CRL (certificate revocation list) checks.
-     * @param ocspEnabled enable OCSP (online certificate status protocol)
-     *                    checks.
+     *
+     * @param trustStoreLocation                the location of the trust store file.
+     * @param trustStorePassword                optional password to decrypt the trust store
+     *                                          (only applies to JKS trust stores). If empty,
+     *                                          assumes the trust store is not encrypted.
+     * @param trustStoreTypeProp                must be JKS, PEM, or null. If null, attempts
+     *                                          to autodetect the trust store type from the
+     *                                          file extension (.jks / .pem).
+     * @param crlEnabled                        enable CRL (certificate revocation list) checks.
+     * @param ocspEnabled                       enable OCSP (online certificate status protocol)
+     *                                          checks.
      * @param serverHostnameVerificationEnabled if true, verify hostnames of
      *                                          remote servers that client
      *                                          sockets created by this
@@ -475,13 +481,13 @@ public abstract class X509Util implements Closeable, AutoCloseable {
      * @throws TrustManagerException if something goes wrong.
      */
     public static X509TrustManager createTrustManager(
-        String trustStoreLocation,
-        String trustStorePassword,
-        String trustStoreTypeProp,
-        boolean crlEnabled,
-        boolean ocspEnabled,
-        final boolean serverHostnameVerificationEnabled,
-        final boolean clientHostnameVerificationEnabled) throws TrustManagerException {
+            String trustStoreLocation,
+            String trustStorePassword,
+            String trustStoreTypeProp,
+            boolean crlEnabled,
+            boolean ocspEnabled,
+            final boolean serverHostnameVerificationEnabled,
+            final boolean clientHostnameVerificationEnabled) throws TrustManagerException {
         if (trustStorePassword == null) {
             trustStorePassword = "";
         }
@@ -559,9 +565,7 @@ public abstract class X509Util implements Closeable, AutoCloseable {
         if (parentPath == null) {
             throw new IOException("Key/trust store path does not have a parent: " + filePath);
         }
-        return new FileChangeWatcher(parentPath, watchEvent -> {
-            handleWatchEvent(filePath, watchEvent);
-        });
+        return new FileChangeWatcher(parentPath, watchEvent -> handleWatchEvent(filePath, watchEvent));
     }
 
     /**
@@ -621,7 +625,7 @@ public abstract class X509Util implements Closeable, AutoCloseable {
             // If we get notified about possibly missed events, reload the key store / trust store just to be sure.
             shouldResetContext = true;
         } else if (event.kind().equals(StandardWatchEventKinds.ENTRY_MODIFY)
-                   || event.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
+                || event.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
             Path eventFilePath = dirPath.resolve((Path) event.context());
             if (filePath.equals(eventFilePath)) {
                 shouldResetContext = true;
@@ -631,9 +635,9 @@ public abstract class X509Util implements Closeable, AutoCloseable {
         if (shouldResetContext) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Attempting to reset default SSL context after receiving watch event: "
-                          + event.kind()
-                          + " with context: "
-                          + event.context());
+                        + event.kind()
+                        + " with context: "
+                        + event.context());
             }
             try {
                 this.resetDefaultSSLContextAndOptions();
@@ -643,9 +647,9 @@ public abstract class X509Util implements Closeable, AutoCloseable {
         } else {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Ignoring watch event and keeping previous default SSL context. Event kind: "
-                          + event.kind()
-                          + " with context: "
-                          + event.context());
+                        + event.kind()
+                        + " with context: "
+                        + event.context());
             }
         }
     }

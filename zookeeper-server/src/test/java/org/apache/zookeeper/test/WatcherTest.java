@@ -22,11 +22,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
@@ -54,6 +56,7 @@ public class WatcherTest extends ClientBase {
     private static final class MyStatCallback implements StatCallback {
 
         int rc;
+
         public void processResult(int rc, String path, Object ctx, Stat stat) {
             ((int[]) ctx)[0]++;
             this.rc = rc;
@@ -81,6 +84,7 @@ public class WatcherTest extends ClientBase {
 
     @Before
     public void setUp() throws Exception {
+        //调用父类的setUp,启动服务器
         super.setUp();
         // Reset to default value since some test cases set this to true.
         // Needed for JDK7 since unit test can run is random order
@@ -220,6 +224,7 @@ public class WatcherTest extends ClientBase {
     }
 
     static final int COUNT = 100;
+
     /**
      * This test checks that watches for pending requests do not get triggered,
      * but watches set by previous requests do.
@@ -271,6 +276,7 @@ public class WatcherTest extends ClientBase {
     /**
      * Wait until no watcher has been fired in the last second to ensure that all watches
      * that are waiting to be fired have been fired
+     *
      * @throws Exception
      */
     private void waitForAllWatchers() throws Exception {

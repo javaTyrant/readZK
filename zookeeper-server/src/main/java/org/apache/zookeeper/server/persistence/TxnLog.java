@@ -25,6 +25,7 @@ import org.apache.zookeeper.server.ServerStats;
 import org.apache.zookeeper.txn.TxnHeader;
 
 /**
+ * 读事务日志的接口
  * Interface for reading transaction logs.
  *
  */

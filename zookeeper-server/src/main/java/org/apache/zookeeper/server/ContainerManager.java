@@ -46,8 +46,9 @@ public class ContainerManager {
     private final RequestProcessor requestProcessor;
     private final int checkIntervalMs;
     private final int maxPerMinute;
+    //用到了timer和timetask
     private final Timer timer;
-    private final AtomicReference<TimerTask> task = new AtomicReference<TimerTask>(null);
+    private final AtomicReference<TimerTask> task = new AtomicReference<>(null);
 
     /**
      * @param zkDb the ZK database
@@ -136,7 +137,7 @@ public class ContainerManager {
 
     // VisibleForTesting
     protected Collection<String> getCandidates() {
-        Set<String> candidates = new HashSet<String>();
+        Set<String> candidates = new HashSet<>();
         for (String containerPath : zkDb.getDataTree().getContainers()) {
             DataNode node = zkDb.getDataTree().getNode(containerPath);
             /*
@@ -155,7 +156,7 @@ public class ContainerManager {
                 Set<String> children = node.getChildren();
                 if (children.isEmpty()) {
                     if (EphemeralType.get(node.stat.getEphemeralOwner()) == EphemeralType.TTL) {
-                        long elapsed = getElapsed(node);
+                        //long elapsed = getElapsed(node);
                         long ttl = EphemeralType.TTL.getValue(node.stat.getEphemeralOwner());
                         if ((ttl != 0) && (getElapsed(node) > ttl)) {
                             candidates.add(ttlPath);

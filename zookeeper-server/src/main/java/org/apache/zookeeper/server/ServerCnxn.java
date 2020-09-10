@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.jute.BinaryOutputArchive;
 import org.apache.jute.Record;
 import org.apache.zookeeper.Quotas;
@@ -49,6 +50,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Interface to a Server connection - represents a connection from a client
  * to the server.
+ * 服务器连接接口.代表一个客户端到服务器连接
  */
 public abstract class ServerCnxn implements Stats, Watcher {
 
@@ -57,9 +59,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
     public static final Object me = new Object();
     private static final Logger LOG = LoggerFactory.getLogger(ServerCnxn.class);
 
-    private Set<Id> authInfo = Collections.newSetFromMap(new ConcurrentHashMap<Id, Boolean>());
-
-    private static final byte[] fourBytes = new byte[4];
+    private final Set<Id> authInfo = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     /**
      * If the client is of old version, we don't send r-o mode info to it.
@@ -70,7 +70,8 @@ public abstract class ServerCnxn implements Stats, Watcher {
 
     AtomicLong outstandingCount = new AtomicLong();
 
-    /** The ZooKeeperServer for this connection. May be null if the server
+    /**
+     * The ZooKeeperServer for this connection. May be null if the server
      * is not currently serving requests (for example if the server is not
      * an active quorum participant.
      */
@@ -225,7 +226,9 @@ public abstract class ServerCnxn implements Stats, Watcher {
 
     abstract void setSessionId(long sessionId);
 
-    /** auth info for the cnxn, returns an unmodifyable list */
+    /**
+     * auth info for the cnxn, returns an unmodifyable list
+     */
     public List<Id> getAuthInfo() {
         return Collections.unmodifiableList(new ArrayList<>(authInfo));
     }
@@ -261,6 +264,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
             super(msg);
             this.reason = reason;
         }
+
         public DisconnectReason getReason() {
             return reason;
         }
@@ -280,6 +284,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
         public String toString() {
             return "EndOfStreamException: " + getMessage();
         }
+
         public DisconnectReason getReason() {
             return reason;
         }
@@ -453,13 +458,18 @@ public abstract class ServerCnxn implements Stats, Watcher {
     }
 
     public abstract InetSocketAddress getRemoteSocketAddress();
+
     public abstract int getInterestOps();
+
     public abstract boolean isSecure();
+
     public abstract Certificate[] getClientCertificateChain();
+
     public abstract void setClientCertificateChain(Certificate[] chain);
 
     /**
      * Print information about the connection.
+     *
      * @param brief iff true prints brief details, otw full detail
      */
     public synchronized void dumpConnectionInfo(PrintWriter pwriter, boolean brief) {
@@ -535,8 +545,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
      * clean up the socket related to a command and also make sure we flush the
      * data before we do that
      *
-     * @param pwriter
-     *            the pwriter for a command socket
+     * @param pwriter the pwriter for a command socket
      */
     public void cleanupWriterSocket(PrintWriter pwriter) {
         try {

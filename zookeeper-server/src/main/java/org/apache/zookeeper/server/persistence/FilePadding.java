@@ -70,7 +70,7 @@ public class FilePadding {
      * pad the current file to increase its size to the next multiple of preAllocSize greater than the current size and position
      *
      * @param fileChannel the fileChannel of the file to be padded
-     * @throws IOException
+     * @throws IOException ioException
      */
     long padFile(FileChannel fileChannel) throws IOException {
         long newFileSize = calculateFileSizeWithPadding(fileChannel.position(), currentSize, preAllocSize);
@@ -105,7 +105,6 @@ public class FilePadding {
                 fileSize += preAllocSize;
             }
         }
-
         return fileSize;
     }
 

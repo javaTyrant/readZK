@@ -232,7 +232,7 @@ public class ReconfigDuringLeaderSyncTest extends QuorumPeerTestBase {
             return new Follower(this, new FollowerZooKeeperServer(logFactory, this, this.getZkDb())) {
 
                 @Override
-                void writePacket(QuorumPacket pp, boolean flush) throws IOException {
+                public void writePacket(QuorumPacket pp, boolean flush) throws IOException {
                     if (pp != null && pp.getType() == Leader.ACK) {
                         newLeaderMessage = true;
                         try {

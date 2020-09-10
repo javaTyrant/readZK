@@ -21,11 +21,14 @@ package org.apache.zookeeper.server.quorum;
 /**
  * This class encapsulates the state comparison logic. Specifically,
  * how two different states are compared.
+ * 这个类封装了状态比较的逻辑.特别的是:两个不同的状态是如何比较的
  */
 public class StateSummary {
+    //当前任期
+    private final long currentEpoch;
+    //最后的事务id
+    private final long lastZxid;
 
-    private long currentEpoch;
-    private long lastZxid;
     public StateSummary(long currentEpoch, long lastZxid) {
         this.currentEpoch = currentEpoch;
         this.lastZxid = lastZxid;
@@ -40,8 +43,10 @@ public class StateSummary {
     }
 
     public boolean isMoreRecentThan(StateSummary ss) {
+        //
         return (currentEpoch > ss.currentEpoch) || (currentEpoch == ss.currentEpoch && lastZxid > ss.lastZxid);
     }
+
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof StateSummary)) {

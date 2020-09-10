@@ -25,24 +25,28 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.zookeeper.common.Time;
 
 /**
+ * 处理过期的session和过期的连接
  * ExpiryQueue tracks elements in time sorted fixed duration buckets.
  * It's used by SessionTrackerImpl to expire sessions and NIOServerCnxnFactory
  * to expire connections.
  */
 public class ExpiryQueue<E> {
-
-    private final ConcurrentHashMap<E, Long> elemMap = new ConcurrentHashMap<E, Long>();
+    //元素队列
+    private final ConcurrentHashMap<E, Long> elemMap = new ConcurrentHashMap<>();
     /**
      * The maximum number of buckets is equal to max timeout/expirationInterval,
      * so the expirationInterval should not be too small compared to the
      * max timeout that this expiry queue needs to maintain.
      */
-    private final ConcurrentHashMap<Long, Set<E>> expiryMap = new ConcurrentHashMap<Long, Set<E>>();
-
+    //过期的map,long映射一个set集合
+    private final ConcurrentHashMap<Long, Set<E>> expiryMap = new ConcurrentHashMap<>();
+    //下一次过期时间
     private final AtomicLong nextExpirationTime = new AtomicLong();
+    //过期时间间隔
     private final int expirationInterval;
 
     public ExpiryQueue(int expirationInterval) {
@@ -50,15 +54,17 @@ public class ExpiryQueue<E> {
         nextExpirationTime.set(roundToNextInterval(Time.currentElapsedTime()));
     }
 
+    //
     private long roundToNextInterval(long time) {
         return (time / expirationInterval + 1) * expirationInterval;
     }
 
     /**
      * Removes element from the queue.
-     * @param elem  element to remove
+     *
+     * @param elem element to remove
      * @return time at which the element was set to expire, or null if
-     *              it wasn't present
+     * it wasn't present
      */
     public Long remove(E elem) {
         Long expiryTime = elemMap.remove(elem);
@@ -76,10 +82,11 @@ public class ExpiryQueue<E> {
     /**
      * Adds or updates expiration time for element in queue, rounding the
      * timeout to the expiry interval bucketed used by this queue.
-     * @param elem     element to add/update
-     * @param timeout  timout in milliseconds
+     *
+     * @param elem    element to add/update
+     * @param timeout timout in milliseconds
      * @return time at which the element is now set to expire if
-     *                 changed, or null if unchanged
+     * changed, or null if unchanged
      */
     public Long update(E elem, int timeout) {
         Long prevExpiryTime = elemMap.get(elem);
@@ -95,7 +102,7 @@ public class ExpiryQueue<E> {
         Set<E> set = expiryMap.get(newExpiryTime);
         if (set == null) {
             // Construct a ConcurrentHashSet using a ConcurrentHashMap
-            set = Collections.newSetFromMap(new ConcurrentHashMap<E, Boolean>());
+            set = Collections.newSetFromMap(new ConcurrentHashMap<>());
             // Put the new set in the map, but only if another thread
             // hasn't beaten us to it
             Set<E> existingSet = expiryMap.putIfAbsent(newExpiryTime, set);
@@ -132,7 +139,7 @@ public class ExpiryQueue<E> {
      * will be a backlog of empty sets queued up in expiryMap.
      *
      * @return next set of expired elements, or an empty set if none are
-     *         ready
+     * ready
      */
     public Set<E> poll() {
         long now = Time.currentElapsedTime();
@@ -143,6 +150,7 @@ public class ExpiryQueue<E> {
 
         Set<E> set = null;
         long newExpirationTime = expirationTime + expirationInterval;
+        //cas
         if (nextExpirationTime.compareAndSet(expirationTime, newExpirationTime)) {
             set = expiryMap.remove(expirationTime);
         }
@@ -158,7 +166,7 @@ public class ExpiryQueue<E> {
         pwriter.print(")/(");
         pwriter.print(elemMap.size());
         pwriter.println("):");
-        ArrayList<Long> keys = new ArrayList<Long>(expiryMap.keySet());
+        ArrayList<Long> keys = new ArrayList<>(expiryMap.keySet());
         Collections.sort(keys);
         for (long time : keys) {
             Set<E> set = expiryMap.get(time);
@@ -182,5 +190,47 @@ public class ExpiryQueue<E> {
         return Collections.unmodifiableMap(expiryMap);
     }
 
-}
+    public static void main(String[] args) throws InterruptedException {
+        int timeOut = 1000;
+        ExpiryQueue<Long> expiryQueue = new ExpiryQueue<>(timeOut);
+        ExpiryThread thread = new ExpiryThread(expiryQueue);
+        expiryQueue.update(1L, 1000);
+        expiryQueue.update(2L, 2000);
+        expiryQueue.update(3L, 3000);
+        thread.setDaemon(true);
+        thread.start();
+        thread.join();
+    }
+    //测试类
+    private static class ExpiryThread extends Thread {
 
+        private final ExpiryQueue<Long> expiryQueue;
+
+        ExpiryThread(ExpiryQueue<Long> expiryQueue) {
+            this.expiryQueue = expiryQueue;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    long waitTime = expiryQueue.getWaitTime();
+                    if (waitTime > 0) {
+                        System.out.println("休眠啦");
+                        Thread.sleep(waitTime);
+                    }
+                    System.out.println("醒啦");
+                    expiryQueue.update(2L, 3000);
+                    //
+                    Set<Long> expirySet = expiryQueue.poll();
+                    for (Long expiry : expirySet) {
+                        System.out.println(expiry);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+    }
+}

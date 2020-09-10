@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class starts and runs a standalone ZooKeeperServer.
+ * 这个类启动一个单体的zk
  */
 @InterfaceAudience.Public
 public class ZooKeeperServerMain {
@@ -48,6 +49,7 @@ public class ZooKeeperServerMain {
     private static final String USAGE = "Usage: ZooKeeperServerMain configfile | port datadir [ticktime] [maxcnxns]";
 
     // ZooKeeper server supports two kinds of connection: unencrypted and encrypted.
+    // zk支持两种方式的连接,加密和非加密的
     private ServerCnxnFactory cnxnFactory;
     private ServerCnxnFactory secureCnxnFactory;
     private ContainerManager containerManager;
@@ -56,7 +58,7 @@ public class ZooKeeperServerMain {
 
     /*
      * Start up the ZooKeeper server.
-     *
+     * 启动zk服务器
      * @param args the configfile or the port datadir [ticktime]
      */
     public static void main(String[] args) {

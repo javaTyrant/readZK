@@ -24,10 +24,11 @@ import org.apache.zookeeper.server.quorum.flexible.QuorumVerifier;
 
 public class SyncedLearnerTracker {
 
-    protected ArrayList<QuorumVerifierAcksetPair> qvAcksetPairs = new ArrayList<QuorumVerifierAcksetPair>();
+    //
+    protected final ArrayList<QuorumVerifierAcksetPair> qvAcksetPairs = new ArrayList<>();
 
     public void addQuorumVerifier(QuorumVerifier qv) {
-        qvAcksetPairs.add(new QuorumVerifierAcksetPair(qv, new HashSet<Long>(qv.getVotingMembers().size())));
+        qvAcksetPairs.add(new QuorumVerifierAcksetPair(qv, new HashSet<>(qv.getVotingMembers().size())));
     }
 
     public boolean addAck(Long sid) {
@@ -71,6 +72,7 @@ public class SyncedLearnerTracker {
 
     public static class QuorumVerifierAcksetPair {
 
+        //QuorumVerifier有哪些信息呢,获取
         private final QuorumVerifier qv;
         private final HashSet<Long> ackset;
 

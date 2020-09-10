@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
+
 import org.apache.zookeeper.ClientCnxn.EndOfStreamException;
 import org.apache.zookeeper.ClientCnxn.Packet;
 import org.apache.zookeeper.ZooDefs.OpCode;
@@ -42,11 +43,11 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     private static final Logger LOG = LoggerFactory.getLogger(ClientCnxnSocketNIO.class);
 
     private final Selector selector = Selector.open();
-
+    //A token representing the registration of a SelectableChannel with a Selector.
     private SelectionKey sockKey;
-
+    //本地地址
     private SocketAddress localSocketAddress;
-
+    //远程地址
     private SocketAddress remoteSocketAddress;
 
     ClientCnxnSocketNIO(ZKClientConfig clientConfig) throws IOException {
@@ -60,10 +61,9 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     }
 
     /**
-     * @throws InterruptedException
      * @throws IOException
      */
-    void doIO(Queue<Packet> pendingQueue, ClientCnxn cnxn) throws InterruptedException, IOException {
+    void doIO(Queue<Packet> pendingQueue, ClientCnxn cnxn) throws IOException {
         SocketChannel sock = (SocketChannel) sockKey.channel();
         if (sock == null) {
             throw new IOException("Socket is null!");
@@ -72,8 +72,8 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
             int rc = sock.read(incomingBuffer);
             if (rc < 0) {
                 throw new EndOfStreamException("Unable to read additional data from server sessionid 0x"
-                                               + Long.toHexString(sessionId)
-                                               + ", likely server has closed socket");
+                        + Long.toHexString(sessionId)
+                        + ", likely server has closed socket");
             }
             if (!incomingBuffer.hasRemaining()) {
                 incomingBuffer.flip();
@@ -83,6 +83,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                 } else if (!initialized) {
                     readConnectResult();
                     enableRead();
+                    //寻找可以发送的数据包
                     if (findSendablePacket(outgoingQueue, sendThread.tunnelAuthInProgress()) != null) {
                         // Since SASL authentication has completed (if client is configured to do so),
                         // outgoing packets waiting in the outgoingQueue can now be sent.
@@ -108,8 +109,8 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                 // If we already started writing p, p.bb will already exist
                 if (p.bb == null) {
                     if ((p.requestHeader != null)
-                        && (p.requestHeader.getType() != OpCode.ping)
-                        && (p.requestHeader.getType() != OpCode.auth)) {
+                            && (p.requestHeader.getType() != OpCode.ping)
+                            && (p.requestHeader.getType() != OpCode.auth)) {
                         p.requestHeader.setXid(cnxn.getXid());
                     }
                     p.createBB();
@@ -119,8 +120,8 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     sentCount.getAndIncrement();
                     outgoingQueue.removeFirstOccurrence(p);
                     if (p.requestHeader != null
-                        && p.requestHeader.getType() != OpCode.ping
-                        && p.requestHeader.getType() != OpCode.auth) {
+                            && p.requestHeader.getType() != OpCode.ping
+                            && p.requestHeader.getType() != OpCode.auth) {
                         synchronized (pendingQueue) {
                             pendingQueue.add(p);
                         }
@@ -156,8 +157,10 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         if (outgoingQueue.isEmpty()) {
             return null;
         }
+        //如果我们已经开始发送第一个packet,最好要发送完
         // If we've already starting sending the first packet, we better finish
         if (outgoingQueue.getFirst().bb != null || !tunneledAuthInProgres) {
+            //取最先添加的
             return outgoingQueue.getFirst();
         }
         // Since client's authentication with server is in progress,
@@ -229,36 +232,47 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
 
     /**
      * create a socket channel.
+     *
      * @return the created socket channel
      * @throws IOException
      */
     SocketChannel createSock() throws IOException {
         SocketChannel sock;
+        //open
         sock = SocketChannel.open();
+        //配置blocking
         sock.configureBlocking(false);
+        //
         sock.socket().setSoLinger(false, -1);
+        //
         sock.socket().setTcpNoDelay(true);
         return sock;
     }
 
     /**
      * register with the selection and connect
+     *
      * @param sock the {@link SocketChannel}
      * @param addr the address of remote host
      * @throws IOException
      */
     void registerAndConnect(SocketChannel sock, InetSocketAddress addr) throws IOException {
+        //注册到selector里
         sockKey = sock.register(selector, SelectionKey.OP_CONNECT);
+        //客户端连接是否建立
         boolean immediateConnect = sock.connect(addr);
         if (immediateConnect) {
+            //如果连接了,sendThread线程开始,Setup session, previous watches, authentication.
             sendThread.primeConnection();
         }
     }
 
     @Override
     void connect(InetSocketAddress addr) throws IOException {
+        //创建一个socketchannel
         SocketChannel sock = createSock();
         try {
+            //注册并连接
             registerAndConnect(sock, addr);
         } catch (IOException e) {
             LOG.error("Unable to open socket to " + addr);
@@ -278,7 +292,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
      * Returns the address to which the socket is connected.
      *
      * @return ip address of the remote side of the connection or null if not
-     *         connected
+     * connected
      */
     @Override
     SocketAddress getRemoteSocketAddress() {
@@ -289,7 +303,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
      * Returns the local address to which the socket is bound.
      *
      * @return ip address of the remote side of the connection or null if not
-     *         connected
+     * connected
      */
     @Override
     SocketAddress getLocalSocketAddress() {
@@ -318,9 +332,9 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
 
     @Override
     void doTransport(
-        int waitTimeOut,
-        Queue<Packet> pendingQueue,
-        ClientCnxn cnxn) throws IOException, InterruptedException {
+            int waitTimeOut,
+            Queue<Packet> pendingQueue,
+            ClientCnxn cnxn) throws IOException, InterruptedException {
         selector.select(waitTimeOut);
         Set<SelectionKey> selected;
         synchronized (this) {
@@ -367,6 +381,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         enableWrite();
     }
 
+    //允许写操作
     synchronized void enableWrite() {
         int i = sockKey.interestOps();
         if ((i & SelectionKey.OP_WRITE) == 0) {
@@ -390,6 +405,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
 
     @Override
     void connectionPrimed() {
+        //注册OPRead和OPWrite
         sockKey.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
     }
 

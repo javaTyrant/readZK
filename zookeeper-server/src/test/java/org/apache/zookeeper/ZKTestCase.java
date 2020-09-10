@@ -19,7 +19,9 @@
 package org.apache.zookeeper;
 
 import static org.junit.Assert.fail;
+
 import java.time.LocalDateTime;
+
 import org.junit.Rule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -29,11 +31,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Base class for a non-parameterized ZK test.
- *
+ * <p>
  * Basic utilities shared by all tests. Also logging of various events during
  * the test execution (start/stop/success/failure/etc...)
  */
-@SuppressWarnings("deprecation")
 @RunWith(JUnit4ZKTestRunner.class)
 public class ZKTestCase {
 
@@ -90,10 +91,11 @@ public class ZKTestCase {
     /**
      * Wait for condition to be true; otherwise fail the test if it exceed
      * timeout
+     *
      * @param msg       error message to print when fail
      * @param condition condition to evaluate
      * @param timeout   timeout in seconds
-     * @throws InterruptedException
+     * @throws InterruptedException exception
      */
     public void waitFor(String msg, WaitForCondition condition, int timeout) throws InterruptedException {
         final LocalDateTime deadline = LocalDateTime.now().plusSeconds(timeout);

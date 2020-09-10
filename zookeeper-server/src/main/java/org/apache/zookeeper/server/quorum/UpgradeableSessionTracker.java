@@ -20,6 +20,7 @@ package org.apache.zookeeper.server.quorum;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.server.SessionTracker;
 import org.apache.zookeeper.server.ZooKeeperServerListener;
@@ -42,9 +43,9 @@ public abstract class UpgradeableSessionTracker implements SessionTracker {
     }
 
     public void createLocalSessionTracker(SessionExpirer expirer, int tickTime, long id, ZooKeeperServerListener listener) {
-        this.localSessionsWithTimeouts = new ConcurrentHashMap<Long, Integer>();
+        this.localSessionsWithTimeouts = new ConcurrentHashMap<>();
         this.localSessionTracker = new LocalSessionTracker(expirer, this.localSessionsWithTimeouts, tickTime, id, listener);
-        this.upgradingSessions = new ConcurrentHashMap<Long, Integer>();
+        this.upgradingSessions = new ConcurrentHashMap<>();
     }
 
     public boolean isTrackingSession(long sessionId) {
@@ -78,7 +79,7 @@ public abstract class UpgradeableSessionTracker implements SessionTracker {
      * it as global.  It is up to the caller to actually
      * queue up a transaction for the session.
      *
-     * @param sessionId
+     * @param sessionId sessionId
      * @return session timeout (-1 if not a local session)
      */
     public int upgradeSession(long sessionId) {

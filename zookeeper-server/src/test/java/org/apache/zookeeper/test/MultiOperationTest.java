@@ -94,11 +94,9 @@ public class MultiOperationTest extends ClientBase {
     }
 
     static class MultiResult {
-
         int rc;
         List<OpResult> results;
         boolean finished = false;
-
     }
 
     private List<OpResult> multi(ZooKeeper zk, Iterable<Op> ops) throws KeeperException, InterruptedException {
@@ -302,7 +300,7 @@ public class MultiOperationTest extends ClientBase {
      */
     @Test(timeout = 90000)
     public void testBlankPath() throws Exception {
-        List<Integer> expectedResultCodes = new ArrayList<Integer>();
+        List<Integer> expectedResultCodes = new ArrayList<>();
         expectedResultCodes.add(KeeperException.Code.RUNTIMEINCONSISTENCY.intValue());
         expectedResultCodes.add(KeeperException.Code.BADARGUMENTS.intValue());
         expectedResultCodes.add(KeeperException.Code.RUNTIMEINCONSISTENCY.intValue());
@@ -364,17 +362,17 @@ public class MultiOperationTest extends ClientBase {
         // setData using chRoot client.
         zk_chroot = createClient(this.hostPort + chRoot);
         String[] names = {"/multi0", "/multi1", "/multi2"};
-        List<Op> ops = new ArrayList<Op>();
+        List<Op> ops = new ArrayList<>();
 
-        for (int i = 0; i < names.length; i++) {
-            ops.add(Op.create(names[i], new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
-            ops.add(Op.setData(names[i], names[i].getBytes(), 0));
+        for (String name : names) {
+            ops.add(Op.create(name, new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT));
+            ops.add(Op.setData(name, name.getBytes(), 0));
         }
 
         multi(zk_chroot, ops);
 
-        for (int i = 0; i < names.length; i++) {
-            assertArrayEquals("zNode data not matching", names[i].getBytes(), zk_chroot.getData(names[i], false, null));
+        for (String name : names) {
+            assertArrayEquals("zNode data not matching", name.getBytes(), zk_chroot.getData(name, false, null));
         }
     }
 

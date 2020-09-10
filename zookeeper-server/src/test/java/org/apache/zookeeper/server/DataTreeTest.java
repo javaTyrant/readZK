@@ -66,22 +66,21 @@ public class DataTreeTest extends ZKTestCase {
         long zxid = 2000;
         final DataTree dataTree = new DataTree();
         LOG.info("Create {} zkclient sessions and its ephemeral nodes", count);
+        //创建1000个临时节点
         createEphemeralNode(session, dataTree, count);
         final AtomicBoolean exceptionDuringDumpEphemerals = new AtomicBoolean(false);
         final AtomicBoolean running = new AtomicBoolean(true);
-        Thread thread = new Thread() {
-            public void run() {
-                PrintWriter pwriter = new PrintWriter(new StringWriter());
-                try {
-                    while (running.get()) {
-                        dataTree.dumpEphemerals(pwriter);
-                    }
-                } catch (Exception e) {
-                    LOG.error("Received exception while dumpEphemerals!", e);
-                    exceptionDuringDumpEphemerals.set(true);
+        Thread thread = new Thread(() -> {
+            PrintWriter pwriter = new PrintWriter(new StringWriter());
+            try {
+                while (running.get()) {
+                    dataTree.dumpEphemerals(pwriter);
                 }
+            } catch (Exception e) {
+                LOG.error("Received exception while dumpEphemerals!", e);
+                exceptionDuringDumpEphemerals.set(true);
             }
-        };
+        });
         thread.start();
         LOG.debug("Killing {} zkclient sessions and its ephemeral nodes", count);
         killZkClientSession(session, zxid, dataTree, count);

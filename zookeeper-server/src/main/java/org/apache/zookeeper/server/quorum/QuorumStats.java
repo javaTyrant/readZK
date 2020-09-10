@@ -18,6 +18,7 @@
 
 package org.apache.zookeeper.server.quorum;
 
+//感觉一个枚举值就够了,这样的设计不太好
 public class QuorumStats {
 
     private final Provider provider;
@@ -29,7 +30,9 @@ public class QuorumStats {
         String LEADING_STATE = "leading";
         String FOLLOWING_STATE = "following";
         String OBSERVING_STATE = "observing";
+
         String[] getQuorumPeers();
+
         String getServerState();
 
     }

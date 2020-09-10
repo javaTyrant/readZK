@@ -20,7 +20,22 @@ package org.apache.zookeeper.server.quorum;
 
 import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
 
+/**
+ * 选票的结构:
+ *      int version;
+ *
+ *      long id;
+ *
+ *      long zxid;
+ *
+ *      long electionEpoch;
+ *
+ *      long peerEpoch;
+ *
+ *      ServerState state;
+ */
 public class Vote {
+
 
     public Vote(long id, long zxid) {
         this.version = 0x0;
@@ -77,6 +92,8 @@ public class Vote {
 
     private final long peerEpoch;
 
+    private final ServerState state;
+
     public int getVersion() {
         return version;
     }
@@ -100,8 +117,6 @@ public class Vote {
     public ServerState getState() {
         return state;
     }
-
-    private final ServerState state;
 
     @Override
     public boolean equals(Object o) {

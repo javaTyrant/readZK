@@ -23,6 +23,7 @@ import java.net.SocketAddress;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.jute.Record;
 import org.apache.zookeeper.admin.ZooKeeperAdmin;
 import org.apache.zookeeper.client.HostProvider;
@@ -32,28 +33,27 @@ import org.apache.zookeeper.proto.RequestHeader;
 public class TestableZooKeeper extends ZooKeeperAdmin {
 
     public TestableZooKeeper(String host, int sessionTimeout, Watcher watcher) throws IOException {
+        //调用ZookeeperAdmin的构造器.只传三个参数
         super(host, sessionTimeout, watcher);
     }
 
+    //复用clientCnxn
     class TestableClientCnxn extends ClientCnxn {
 
-        TestableClientCnxn(
-            String chrootPath,
-            HostProvider hostProvider,
-            int sessionTimeout,
-            ZooKeeper zooKeeper,
-            ClientWatchManager watcher,
-            ClientCnxnSocket clientCnxnSocket,
-            boolean canBeReadOnly) throws IOException {
+        TestableClientCnxn(String chrootPath, HostProvider hostProvider,
+                           int sessionTimeout, ZooKeeper zooKeeper,
+                           ClientWatchManager watcher, ClientCnxnSocket clientCnxnSocket,
+                           boolean canBeReadOnly) {
+
             super(chrootPath,
-                  hostProvider,
-                  sessionTimeout,
-                  zooKeeper,
-                  watcher,
-                  clientCnxnSocket,
-                  0,
-                  new byte[16],
-                  canBeReadOnly);
+                    hostProvider,
+                    sessionTimeout,
+                    zooKeeper,
+                    watcher,
+                    clientCnxnSocket,
+                    0,
+                    new byte[16],
+                    canBeReadOnly);
         }
 
         void setXid(int newXid) {
@@ -67,21 +67,21 @@ public class TestableZooKeeper extends ZooKeeperAdmin {
     }
 
     protected ClientCnxn createConnection(
-        String chrootPath,
-        HostProvider hostProvider,
-        int sessionTimeout,
-        ZooKeeper zooKeeper,
-        ClientWatchManager watcher,
-        ClientCnxnSocket clientCnxnSocket,
-        boolean canBeReadOnly) throws IOException {
+            String chrootPath,
+            HostProvider hostProvider,
+            int sessionTimeout,
+            ZooKeeper zooKeeper,
+            ClientWatchManager watcher,
+            ClientCnxnSocket clientCnxnSocket,
+            boolean canBeReadOnly) throws IOException {
         return new TestableClientCnxn(
-            chrootPath,
-            hostProvider,
-            sessionTimeout,
-            this,
-            watcher,
-            clientCnxnSocket,
-            canBeReadOnly);
+                chrootPath,
+                hostProvider,
+                sessionTimeout,
+                this,
+                watcher,
+                clientCnxnSocket,
+                canBeReadOnly);
     }
 
     public void setXid(int xid) {
@@ -120,6 +120,7 @@ public class TestableZooKeeper extends ZooKeeperAdmin {
     /**
      * Cause this ZooKeeper object to stop receiving from the ZooKeeperServer
      * for the given number of milliseconds.
+     *
      * @param ms the number of milliseconds to pause.
      * @return true if the connection is paused, otherwise false
      */
@@ -167,14 +168,15 @@ public class TestableZooKeeper extends ZooKeeperAdmin {
     }
 
     public ReplyHeader submitRequest(
-        RequestHeader h,
-        Record request,
-        Record response,
-        WatchRegistration watchRegistration) throws InterruptedException {
+            RequestHeader h,
+            Record request,
+            Record response,
+            WatchRegistration watchRegistration) throws InterruptedException {
         return cnxn.submitRequest(h, request, response, watchRegistration);
     }
 
-    /** Testing only!!! Really!!!! This is only here to test when the client
+    /**
+     * Testing only!!! Really!!!! This is only here to test when the client
      * disconnects from the server w/o sending a session disconnect (ie
      * ending the session cleanly). The server will eventually notice the
      * client is no longer pinging and will timeout the session.

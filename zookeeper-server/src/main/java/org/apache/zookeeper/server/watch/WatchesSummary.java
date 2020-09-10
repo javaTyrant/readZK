@@ -21,7 +21,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
+ * 监控信息封装类
  * A summary of watch information. This class is immutable.
+ * 监控信息的总结,这个类不可变
  */
 public class WatchesSummary {
 
@@ -48,8 +50,8 @@ public class WatchesSummary {
      * Creates a new summary.
      *
      * @param numConnections the number of sessions that have set watches
-     * @param numPaths the number of paths that have watches set on them
-     * @param totalWatches the total number of watches set
+     * @param numPaths       the number of paths that have watches set on them
+     * @param totalWatches   the total number of watches set
      */
     WatchesSummary(int numConnections, int numPaths, int totalWatches) {
         this.numConnections = numConnections;
@@ -65,6 +67,7 @@ public class WatchesSummary {
     public int getNumConnections() {
         return numConnections;
     }
+
     /**
      * Gets the number of paths that have watches set on them.
      *
@@ -73,6 +76,7 @@ public class WatchesSummary {
     public int getNumPaths() {
         return numPaths;
     }
+
     /**
      * Gets the total number of watches set.
      *
@@ -89,7 +93,7 @@ public class WatchesSummary {
      * @return map representation of summary
      */
     public Map<String, Object> toMap() {
-        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        Map<String, Object> summary = new LinkedHashMap<>();
         summary.put(KEY_NUM_CONNECTIONS, numConnections);
         summary.put(KEY_NUM_PATHS, numPaths);
         summary.put(KEY_NUM_TOTAL_WATCHES, totalWatches);

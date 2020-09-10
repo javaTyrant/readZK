@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.cli.CliCommand;
@@ -51,9 +53,7 @@ import org.apache.zookeeper.test.ClientBase;
 import org.junit.Test;
 
 /**
- *
  * Testing ZooKeeper public methods
- *
  */
 public class ZooKeeperTest extends ClientBase {
 
@@ -263,9 +263,9 @@ public class ZooKeeperTest extends ClientBase {
             assertEquals("create is not taken as first argument", zkMain.cl.getCmdArgument(0), "create");
             assertEquals("/node is not taken as second argument", zkMain.cl.getCmdArgument(1), "/node");
             assertEquals(
-                "quoted data is not taken as third argument",
-                zkMain.cl.getCmdArgument(2),
-                innerQuotes + "quoted data" + innerQuotes);
+                    "quoted data is not taken as third argument",
+                    zkMain.cl.getCmdArgument(2),
+                    innerQuotes + "quoted data" + innerQuotes);
         }
     }
 
@@ -433,23 +433,35 @@ public class ZooKeeperTest extends ClientBase {
             assertEquals(KeeperException.Code.NONODE, ((KeeperException) e.getCause()).code());
         }
     }
-
+    //服务端和客户端的端口分别是多少
     @Test
     public void testSetData() throws Exception {
+        //创建一个客户端,并连接服务器,这个测试方法并没有连接服务器的操作
+        //那么是不是初始化的时候创建服务器的呢
         final ZooKeeper zk = createClient();
+        //创建一个入口,把zk设置进去
         ZooKeeperMain zkMain = new ZooKeeperMain(zk);
+        //三个命令
         String cmdstring1 = "create -e /node4 data";
         String cmdstring2 = "set /node4 " + "data";
         String cmdstring3 = "delete /node4";
-        Stat stat = new Stat();
-        int version = 0;
+        Stat stat;
+        int version;
         zkMain.cl.parseCommand(cmdstring1);
+        //创建命令1,创建一个临时节点
+        // create返回true,set返回false,delete也返回false
         assertTrue(zkMain.processZKCmd(zkMain.cl));
+        //exists会返回一个stat,判断临时节点存在吗
         stat = zk.exists("/node4", true);
+        //获取version
         version = stat.getVersion();
+        //执行命令二set data
         zkMain.cl.parseCommand(cmdstring2);
+        //为什么是false呢?临时节点不准set吗
         assertFalse(zkMain.processZKCmd(zkMain.cl));
+        //判断exists
         stat = zk.exists("/node4", true);
+        //version会加一
         assertEquals(version + 1, stat.getVersion());
         zkMain.cl.parseCommand(cmdstring3);
         assertFalse(zkMain.processZKCmd(zkMain.cl));
@@ -663,14 +675,14 @@ public class ZooKeeperTest extends ClientBase {
             CountdownWatcher watcher = new CountdownWatcher();
             HostProvider aHostProvider = new StaticHostProvider(new ConnectStringParser(hostPort).getServerAddresses());
             newZKClient = new ZooKeeper(
-                hostPort,
-                zk.getSessionTimeout(),
-                watcher,
-                zk.getSessionId(),
-                zk.getSessionPasswd(),
-                false,
-                aHostProvider,
-                clientConfig);
+                    hostPort,
+                    zk.getSessionTimeout(),
+                    watcher,
+                    zk.getSessionId(),
+                    zk.getSessionPasswd(),
+                    false,
+                    aHostProvider,
+                    clientConfig);
             watcher.waitForConnected(CONNECTION_TIMEOUT);
             assertEquals("Old client session id and new clinet session id must be same", zk.getSessionId(), newZKClient.getSessionId());
         } finally {

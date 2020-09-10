@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+
 import org.apache.zookeeper.server.quorum.QuorumPeer.LearnerType;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
@@ -30,14 +31,17 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 /**
  * This class implements a validator for majority quorums. The implementation is
  * straightforward.
- *
  */
 public class QuorumMaj implements QuorumVerifier {
-
-    private Map<Long, QuorumServer> allMembers = new HashMap<Long, QuorumServer>();
-    private Map<Long, QuorumServer> votingMembers = new HashMap<Long, QuorumServer>();
-    private Map<Long, QuorumServer> observingMembers = new HashMap<Long, QuorumServer>();
+    //所有的成员
+    private Map<Long, QuorumServer> allMembers = new HashMap<>();
+    //投票的成员
+    private Map<Long, QuorumServer> votingMembers = new HashMap<>();
+    //观察的成员
+    private Map<Long, QuorumServer> observingMembers = new HashMap<>();
+    //版本
     private long version = 0;
+    //过半机制
     private int half;
 
     public int hashCode() {
@@ -67,17 +71,20 @@ public class QuorumMaj implements QuorumVerifier {
 
     /**
      * Defines a majority to avoid computing it every time.
-     *
+     * 定义一个多数派,以避免每次都要计算
+     * 这个allMembers肯定是从配置文件里获取到的
      */
     public QuorumMaj(Map<Long, QuorumServer> allMembers) {
         this.allMembers = allMembers;
         for (QuorumServer qs : allMembers.values()) {
+            //两种身份,参与者还是观察者
             if (qs.type == LearnerType.PARTICIPANT) {
                 votingMembers.put(Long.valueOf(qs.id), qs);
             } else {
                 observingMembers.put(Long.valueOf(qs.id), qs);
             }
         }
+        //投票者的一半
         half = votingMembers.size() / 2;
     }
 

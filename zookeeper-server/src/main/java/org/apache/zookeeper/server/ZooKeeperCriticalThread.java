@@ -22,12 +22,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 代表重要的线程.
  * Represents critical thread. When there is an uncaught exception thrown by the
  * thread this will exit the system.
  */
 public class ZooKeeperCriticalThread extends ZooKeeperThread {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperCriticalThread.class);
+    //listener
     private final ZooKeeperServerListener listener;
 
     public ZooKeeperCriticalThread(String threadName, ZooKeeperServerListener listener) {

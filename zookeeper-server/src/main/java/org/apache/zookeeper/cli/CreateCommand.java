@@ -120,6 +120,7 @@ public class CreateCommand extends CliCommand {
             acl = AclParser.parse(args[3]);
         }
         try {
+            //这个类只需要了解zk,不需要关键通信的细节
             String newPath = hasT
                 ? zk.create(path, data, acl, flags, new Stat(), ttl)
                 : zk.create(path, data, acl, flags);

@@ -273,6 +273,7 @@ public class ZKDatabase {
      */
     public long loadDataBase() throws IOException {
         long startTime = Time.currentElapsedTime();
+        //加载disk里的zxid
         long zxid = snapLog.restore(dataTree, sessionsWithTimeouts, commitProposalPlaybackListener);
         initialized = true;
         long loadTime = Time.currentElapsedTime() - startTime;

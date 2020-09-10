@@ -66,12 +66,14 @@ public class SetCommand extends CliCommand {
         byte[] data = args[2].getBytes();
         int version;
         if (cl.hasOption("v")) {
+            //
             version = Integer.parseInt(cl.getOptionValue("v"));
         } else {
             version = -1;
         }
 
         try {
+            //调用zk的setdata,具体的转发的逻辑都在这里面
             Stat stat = zk.setData(path, data, version);
             if (cl.hasOption("s")) {
                 new StatPrinter(out).print(stat);

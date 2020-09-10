@@ -61,6 +61,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+//理解这个类的窗口
 public class CnxManagerTest extends ZKTestCase {
 
     protected static final Logger LOG = LoggerFactory.getLogger(FLENewEpochTest.class);
@@ -75,7 +76,7 @@ public class CnxManagerTest extends ZKTestCase {
     public void setUp() throws Exception {
 
         this.count = 3;
-        this.peers = new HashMap<Long, QuorumServer>(count);
+        this.peers = new HashMap<>(count);
         peerTmpdir = new File[count];
         peerQuorumPort = new int[count];
         peerClientPort = new int[count];
@@ -156,6 +157,7 @@ public class CnxManagerTest extends ZKTestCase {
 
     @Test
     public void testCnxManager() throws Exception {
+        //这个线程start是干啥的呢
         CnxManagerThread thread = new CnxManagerThread();
 
         thread.start();
