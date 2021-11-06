@@ -108,6 +108,7 @@ public class Request {
 
     /**
      * If this is a create or close request for a local-only session.
+     * 本地session
      */
     private boolean isLocalSession = false;
 

@@ -79,9 +79,9 @@ public class Leader extends LearnerMaster {
 
     //议案分析类,这个类继承了SyncedLearnerTracker
     public static class Proposal extends SyncedLearnerTracker {
-        //数据包:
+        //数据包:type
         public QuorumPacket packet;
-        //请求
+        //请求:zxid
         public Request request;
 
         @Override
@@ -109,9 +109,9 @@ public class Leader extends LearnerMaster {
         return ackLoggingFrequency;
     }
 
-    //leader服务器
+    //leader服务,只是请求链不一样
     final LeaderZooKeeperServer zk;
-    //法人
+    //法人这个类还是要通读一遍
     final QuorumPeer self;
 
     // VisibleForTesting
@@ -263,22 +263,30 @@ public class Leader extends LearnerMaster {
      */
     public boolean isQuorumSynced(QuorumVerifier qv) {
         HashSet<Long> ids = new HashSet<>();
+        //如果投票的成员中包含这个sid
         if (qv.getVotingMembers().containsKey(self.getId())) {
+            //把sid添加到ids中
             ids.add(self.getId());
         }
+        //加锁
         synchronized (forwardingFollowers) {
+            //遍历
             for (LearnerHandler learnerHandler : forwardingFollowers) {
+                //如果lh连接了,且投票的成员包含这个sid
                 if (learnerHandler.synced() && qv.getVotingMembers().containsKey(learnerHandler.getSid())) {
+                    //ids添加,是hashset所以不会担心重复的问题
                     ids.add(learnerHandler.getSid());
                 }
             }
         }
+        //ids是否是大多数
         return qv.containsQuorum(ids);
     }
 
-    //serversocket,
+    //serversocket,服务器socket
     private final ServerSocket ss;
 
+    //给self和zk赋值
     Leader(QuorumPeer self, LeaderZooKeeperServer zk) throws IOException {
         this.self = self;
         this.proposalStats = new BufferStats();
@@ -329,6 +337,7 @@ public class Leader extends LearnerMaster {
 
     /**
      * This is for follower to download the snapshots
+     * 全量同步
      */
     static final int SNAP = 15;
 
@@ -420,11 +429,12 @@ public class Leader extends LearnerMaster {
      */
     static final int INFORMANDACTIVATE = 19;
 
+    //
     final ConcurrentMap<Long, Proposal> outstandingProposals = new ConcurrentHashMap<>();
 
     private final ConcurrentLinkedQueue<Proposal> toBeApplied = new ConcurrentLinkedQueue<>();
 
-    // VisibleForTesting
+    // VisibleForTesting,非常重要
     protected final Proposal newLeaderProposal = new Proposal();
 
     //管理follower的连接
@@ -451,7 +461,8 @@ public class Leader extends LearnerMaster {
                         s.setSoTimeout(self.tickTime * self.initLimit);
                         s.setTcpNoDelay(nodelay);
                         BufferedInputStream is = new BufferedInputStream(s.getInputStream());
-                        //需要三个参数
+                        //为每一个连接分配一个LearnerHandler.需要三个参数
+                        //learnerHandler负责?
                         LearnerHandler fh = new LearnerHandler(s, is, Leader.this);
                         fh.start();
                     } catch (SocketException e) {
@@ -523,7 +534,8 @@ public class Leader extends LearnerMaster {
      * 1.接收 follower 连接
      * 2.计算新的 epoch 值
      * 3.通知统一 epoch 值
-     * 4.数据同步
+     * 4.数据同步 源码中对应的是?执行链是
+     * 数据同步的类是LearnerHandler
      * 5.启动 zk server 对外提供服务
      *
      * @throws IOException          io异常
@@ -554,16 +566,17 @@ public class Leader extends LearnerMaster {
             //开启一个线程等待新的followerers的连接
             cnxAcceptor = new LearnerCnxAcceptor();
             //这个方法里会启动LearnerHandler,这个类负责和learner的交互
-            cnxAcceptor.start();
+            cnxAcceptor.start();//这边不用管
             //get the first zxid of the next epoch
             long epoch = getEpochToPropose(self.getId(), self.getAcceptedEpoch());
             //设置zxid
             zk.setZxid(ZxidUtils.makeZxid(epoch, 0));
             //加锁,这个方法会被多线程访问吗?
             synchronized (this) {
+                //什么时候会有lead被多次调用的情况呢?lead还没结束,又开启了新一轮的选举?
                 lastProposed = zk.getZxid();
             }
-            //设置数据包
+            //设置NewLeader数据包
             newLeaderProposal.packet = new QuorumPacket(NEWLEADER, zk.getZxid(), null, null);
             //0xffffffffL为什么要这么判断?
             if ((newLeaderProposal.packet.getZxid() & 0xffffffffL) != 0) {
@@ -572,14 +585,17 @@ public class Leader extends LearnerMaster {
             QuorumVerifier lastSeenQV = self.getLastSeenQuorumVerifier();
             QuorumVerifier curQV = self.getQuorumVerifier();
             if (curQV.getVersion() == 0 && curQV.getVersion() == lastSeenQV.getVersion()) {
+                // presedence 优先
                 // This was added in ZOOKEEPER-1783. The initial config has version 0 (not explicitly
                 // specified by the user; the lack of version in a config file is interpreted as version=0).
                 // As soon as a config is established we would like to increase its version so that it
                 // takes presedence over other initial configs that were not established (such as a config
                 // of a server trying to join the ensemble, which may be a partial view of the system, not the full config).
                 // We chose to set the new version to the one of the NEWLEADER message. However, before we can do that
-                // there must be agreement on the new version, so we can only change the version when sending/receiving UPTODATE,
-                // not when sending/receiving NEWLEADER. In other words, we can't change curQV here since its the committed quorum verifier,
+                // there must be agreement on the new version(new version也需要一致性),
+                // so we can only change the version when sending/receiving UPTODATE,
+                // not when sending/receiving NEWLEADER. In other words, we can't change curQV here
+                // since its the committed quorum verifier,
                 // and there's still no agreement on the new version that we'd like to use. Instead, we use
                 // lastSeenQuorumVerifier which is being sent with NEWLEADER message
                 // so its a good way to let followers know about the new version. (The original reason for sending
@@ -599,17 +615,19 @@ public class Leader extends LearnerMaster {
                     throw new IOException(e);
                 }
             }
-
+            //新leader的提案.添加一个QV
             newLeaderProposal.addQuorumVerifier(self.getQuorumVerifier());
+            //最后收到的提案
             if (self.getLastSeenQuorumVerifier().getVersion() > self.getQuorumVerifier().getVersion()) {
                 newLeaderProposal.addQuorumVerifier(self.getLastSeenQuorumVerifier());
             }
-
+            //newleader packet要被majority确认
             // We have to get at least a majority of servers in sync with
             // us. We do this by waiting for the NEWLEADER packet to get
-            // acknowledged
-
+            // acknowledged.
+            //下面还有个newleaderack
             waitForEpochAck(self.getId(), leaderStateSummary);
+
             self.setCurrentEpoch(epoch);
             self.setLeaderAddressAndId(self.getQuorumAddress(), self.getId());
             self.setZabState(QuorumPeer.ZabState.SYNCHRONIZATION);
@@ -620,7 +638,7 @@ public class Leader extends LearnerMaster {
                 shutdown("Waiting for a quorum of followers, only synced with sids: [ "
                         + newLeaderProposal.ackSetsToString()
                         + " ]");
-                HashSet<Long> followerSet = new HashSet<Long>();
+                HashSet<Long> followerSet = new HashSet<>();
 
                 for (LearnerHandler f : getLearners()) {
                     if (self.getQuorumVerifier().getVotingMembers().containsKey(f.getSid())) {
@@ -640,6 +658,7 @@ public class Leader extends LearnerMaster {
                 return;
             }
 
+            //此时已经可以对外提供服务了
             startZkServer();
 
             /*
@@ -886,7 +905,7 @@ public class Leader extends LearnerMaster {
             //LOG.warn("designated leader is: " + designatedLeader);
 
             QuorumVerifier newQV = p.qvAcksetPairs.get(p.qvAcksetPairs.size() - 1).getQuorumVerifier();
-
+            //重新配置
             self.processReconfig(newQV, designatedLeader, zk.getZxid(), true);
 
             if (designatedLeader != self.getId()) {
@@ -1067,6 +1086,7 @@ public class Leader extends LearnerMaster {
         //加锁,以保证有序性
         synchronized (forwardingFollowers) {
             for (LearnerHandler f : forwardingFollowers) {
+                //委托给learnerHandler
                 f.queuePacket(qp);
             }
         }
@@ -1085,13 +1105,16 @@ public class Leader extends LearnerMaster {
 
     /**
      * Create a commit packet and send it to all the members of the quorum
+     * 创建一个commit包并发送给这个quorum的所有成员
+     * 那么是如何接受commit信息的呢?
      *
-     * @param zxid
+     * @param zxid zxid
      */
     public void commit(long zxid) {
         synchronized (this) {
             lastCommitted = zxid;
         }
+        //
         QuorumPacket qp = new QuorumPacket(Leader.COMMIT, zxid, null, null);
         sendPacket(qp);
         ServerMetrics.getMetrics().COMMIT_COUNT.add(1);
@@ -1145,7 +1168,7 @@ public class Leader extends LearnerMaster {
     /**
      * Returns the current epoch of the leader.
      *
-     * @return
+     * @return long
      */
     public long getEpoch() {
         return ZxidUtils.getEpochFromZxid(lastProposed);
@@ -1215,7 +1238,6 @@ public class Leader extends LearnerMaster {
      *
      * @param r the request
      */
-
     public synchronized void processSync(LearnerSyncRequest r) {
         if (outstandingProposals.isEmpty()) {
             sendSync(r);
@@ -1231,6 +1253,7 @@ public class Leader extends LearnerMaster {
 
     /**
      * Sends a sync message to the appropriate server
+     * 发送一个同步信息给相应的服务器
      */
     public void sendSync(LearnerSyncRequest r) {
         QuorumPacket qp = new QuorumPacket(Leader.SYNC, 0, null, null);
@@ -1261,7 +1284,7 @@ public class Leader extends LearnerMaster {
             }
             // Only participant need to get outstanding proposals
             if (handler.getLearnerType() == LearnerType.PARTICIPANT) {
-                List<Long> zxids = new ArrayList<Long>(outstandingProposals.keySet());
+                List<Long> zxids = new ArrayList<>(outstandingProposals.keySet());
                 Collections.sort(zxids);
                 for (Long zxid : zxids) {
                     if (zxid <= lastSeenZxid) {
@@ -1290,7 +1313,7 @@ public class Leader extends LearnerMaster {
     }
 
     // VisibleForTesting
-    protected final Set<Long> connectingFollowers = new HashSet<Long>();
+    protected final Set<Long> connectingFollowers = new HashSet<>();
 
     private volatile boolean quitWaitForEpoch = false;
     private volatile long timeStartWaitForEpoch = -1;
@@ -1394,6 +1417,7 @@ public class Leader extends LearnerMaster {
 
     @Override
     public void waitForEpochAck(long id, StateSummary ss) throws IOException, InterruptedException {
+        //加锁
         synchronized (electingFollowers) {
             if (electionFinished) {
                 return;
@@ -1450,6 +1474,7 @@ public class Leader extends LearnerMaster {
 
     /**
      * Start up Leader ZooKeeper server and initialize zxid to the new epoch
+     * 开启zkserver且初始化zxid到新的epoch
      */
     private synchronized void startZkServer() {
         // Update lastCommitted and Db's zxid to a value representing the new epoch
@@ -1467,7 +1492,7 @@ public class Leader extends LearnerMaster {
          */
         QuorumVerifier newQV = self.getLastSeenQuorumVerifier();
 
-        Long designatedLeader = getDesignatedLeader(newLeaderProposal, zk.getZxid());
+        long designatedLeader = getDesignatedLeader(newLeaderProposal, zk.getZxid());
 
         self.processReconfig(newQV, designatedLeader, zk.getZxid(), true);
         if (designatedLeader != self.getId()) {
@@ -1475,6 +1500,7 @@ public class Leader extends LearnerMaster {
         }
 
         leaderStartTime = Time.currentElapsedTime();
+        //LeaderZooKeeperServer
         zk.startup();
         /*
          * Update the election vote here to ensure that all members of the
@@ -1491,15 +1517,16 @@ public class Leader extends LearnerMaster {
     /**
      * Process NEWLEADER ack of a given sid and wait until the leader receives
      * sufficient acks.
+     * 处理特定sid的newleader ack等待一直到这个leader接收到足够的akcs
      *
      * @param sid sid
      * @throws InterruptedException exception
      */
     @Override
     public void waitForNewLeaderAck(long sid, long zxid) throws InterruptedException {
-
+        //用什么加锁
         synchronized (newLeaderProposal.qvAcksetPairs) {
-
+            //quorumFormed
             if (quorumFormed) {
                 return;
             }
@@ -1517,15 +1544,17 @@ public class Leader extends LearnerMaster {
              * is a PARTICIPANT.
              */
             newLeaderProposal.addAck(sid);
-
+            //满足
             if (newLeaderProposal.hasAllQuorums()) {
                 quorumFormed = true;
                 newLeaderProposal.qvAcksetPairs.notifyAll();
             } else {
+                //
                 long start = Time.currentElapsedTime();
                 long cur = start;
                 long end = start + self.getInitLimit() * self.getTickTime();
                 while (!quorumFormed && cur < end) {
+                    //等待
                     newLeaderProposal.qvAcksetPairs.wait(end - cur);
                     cur = Time.currentElapsedTime();
                 }

@@ -153,6 +153,7 @@ public class ZooKeeperMain {
 
     /**
      * A storage class for both command line options and shell commands.
+     * 存储类:command line和shell commands
      */
     static class MyCommandOptions {
 
@@ -236,7 +237,7 @@ public class ZooKeeperMain {
         public boolean parseCommand(String cmdstring) {
             Matcher matcher = ARGS_PATTERN.matcher(cmdstring);
 
-            List<String> args = new LinkedList<String>();
+            List<String> args = new LinkedList<>();
             while (matcher.find()) {
                 String value = matcher.group(1);
                 if (QUOTED_PATTERN.matcher(value).matches()) {

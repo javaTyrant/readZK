@@ -58,6 +58,7 @@ public class WatchManager implements IWatchManager {
     }
 
     boolean isDeadWatcher(Watcher watcher) {
+        //
         return watcher instanceof ServerCnxn && ((ServerCnxn) watcher).isStale();
     }
 

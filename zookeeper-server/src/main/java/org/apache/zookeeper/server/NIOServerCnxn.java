@@ -180,6 +180,7 @@ public class NIOServerCnxn extends ServerCnxn {
             if (!initialized) {
                 readConnectRequest();
             } else {
+                //读请求
                 readRequest();
             }
             lenBuffer.clear();

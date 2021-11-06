@@ -19,10 +19,12 @@
 package org.apache.zookeeper.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.apache.jute.InputArchive;
 import org.apache.jute.OutputArchive;
 import org.apache.jute.Record;
@@ -34,11 +36,10 @@ import org.apache.zookeeper.data.StatPersisted;
  * <p>
  * A data node contains a reference to its parent, a byte array as its data, an
  * array of ACLs, a stat object, and a set of its children's paths.
- *
  */
 @SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 public class DataNode implements Record {
-
+    // digest 摘要
     // the digest value of this node, calculated from path, data and stat
     private volatile long digest;
 
@@ -46,7 +47,10 @@ public class DataNode implements Record {
     // optimize the performance.
     volatile boolean digestCached;
 
-    /** the data for this datanode */
+    /**
+     * the data for this datanode
+     * 数据
+     */
     byte[] data;
 
     /**
@@ -78,12 +82,9 @@ public class DataNode implements Record {
     /**
      * create a DataNode with parent, data, acls and stat
      *
-     * @param data
-     *            the data to be set
-     * @param acl
-     *            the acls for this node
-     * @param stat
-     *            the stat for this node.
+     * @param data the data to be set
+     * @param acl  the acls for this node
+     * @param stat the stat for this node.
      */
     public DataNode(byte[] data, Long acl, StatPersisted stat) {
         this.data = data;
@@ -94,14 +95,13 @@ public class DataNode implements Record {
     /**
      * Method that inserts a child into the children set
      *
-     * @param child
-     *            to be inserted
+     * @param child to be inserted
      * @return true if this set did not already contain the specified element
      */
     public synchronized boolean addChild(String child) {
         if (children == null) {
             // let's be conservative on the typical number of children
-            children = new HashSet<String>(8);
+            children = new HashSet<>(8);
         }
         return children.add(child);
     }
@@ -132,7 +132,7 @@ public class DataNode implements Record {
      * convenience methods to get the children
      *
      * @return the children of this datanode. If the datanode has no children, empty
-     *         set is returned
+     * set is returned
      */
     public synchronized Set<String> getChildren() {
         if (children == null) {

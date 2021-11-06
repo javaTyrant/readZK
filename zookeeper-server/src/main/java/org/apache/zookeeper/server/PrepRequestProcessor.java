@@ -188,6 +188,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
             return zks.outstandingChangesForPath.get(path);
         }
     }
+
     //添加改变记录
     protected void addChangeRecord(ChangeRecord c) {
         //加锁
@@ -311,10 +312,11 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
      * This method will be called inside the ProcessRequestThread, which is a
      * singleton, so there will be a single thread calling this code.
      * 这个方法会被这个线程内部调用,是单例的,所以只会有一个线程调用这个方法
-     * @param type
-     * @param zxid
-     * @param request
-     * @param record
+     *
+     * @param type    type
+     * @param zxid    zxid
+     * @param request request
+     * @param record  record
      */
     protected void pRequest2Txn(int type, long zxid, Request request, Record record, boolean deserialize)
             throws KeeperException, IOException {
@@ -372,7 +374,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 addChangeRecord(parentRecord);
                 addChangeRecord(new ChangeRecord(request.getHdr().getZxid(), path, null, -1, null));
                 break;
-                //setdata操作
+            //setdata操作
             case OpCode.setData:
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 SetDataRequest setDataRequest = (SetDataRequest) record;
@@ -389,7 +391,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 nodeRecord.stat.setVersion(newVersion);
                 addChangeRecord(nodeRecord);
                 break;
-                //重新配置操作
+            //重新配置操作
             case OpCode.reconfig:
                 if (!QuorumPeerConfig.isReconfigEnabled()) {
                     LOG.error("Reconfig operation requested but reconfig feature is disabled.");
@@ -460,7 +462,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                         LOG.warn(msg);
                         throw new KeeperException.BadArgumentsException(msg);
                     }
-                    Map<Long, QuorumServer> nextServers = new HashMap<Long, QuorumServer>(lastSeenQV.getAllMembers());
+                    Map<Long, QuorumServer> nextServers = new HashMap<>(lastSeenQV.getAllMembers());
                     try {
                         if (leavingServers != null) {
                             for (String leaving : leavingServers) {
@@ -599,7 +601,8 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
         }
     }
 
-    private void pRequest2TxnCreate(int type, Request request, Record record, boolean deserialize) throws IOException, KeeperException {
+    private void pRequest2TxnCreate(int type, Request request, Record record, boolean deserialize)
+            throws IOException, KeeperException {
         if (deserialize) {
             ByteBufferInputStream.byteBuffer2Record(request.request, record);
         }
@@ -628,7 +631,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
         //验证请求
         validateCreateRequest(path, createMode, request, ttl);
         String parentPath = validatePathForCreate(path, request.sessionId);
-
+        //
         List<ACL> listACL = fixupACL(path, request.authInfo, acl);
         ChangeRecord parentRecord = getRecordForPath(parentPath);
 
@@ -742,12 +745,13 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                     CheckVersionRequest checkRequest = new CheckVersionRequest();
                     pRequest2Txn(request.type, zks.getNextZxid(), request, checkRequest, true);
                     break;
-                case OpCode.multi:
+                case OpCode.multi://可以看到这是最复杂的一个处理了.
                     MultiOperationRecord multiRequest = new MultiOperationRecord();
                     try {
                         ByteBufferInputStream.byteBuffer2Record(request.request, multiRequest);
                     } catch (IOException e) {
-                        request.setHdr(new TxnHeader(request.sessionId, request.cxid, zks.getNextZxid(), Time.currentWallTime(), OpCode.multi));
+                        request.setHdr(new TxnHeader(request.sessionId, request.cxid, zks.getNextZxid(),
+                                Time.currentWallTime(), OpCode.multi));
                         throw e;
                     }
                     List<Txn> txns = new ArrayList<>();
@@ -930,7 +934,8 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
      * @return verified and expanded ACLs
      * @throws KeeperException.InvalidACLException
      */
-    public static List<ACL> fixupACL(String path, List<Id> authInfo, List<ACL> acls) throws KeeperException.InvalidACLException {
+    public static List<ACL> fixupACL(String path, List<Id> authInfo, List<ACL> acls)
+            throws KeeperException.InvalidACLException {
         // check for well formed ACLs
         // This resolves https://issues.apache.org/jira/browse/ZOOKEEPER-1877
         //简单的用arraylist去重

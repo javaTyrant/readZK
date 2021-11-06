@@ -21,17 +21,20 @@ package org.apache.zookeeper.server;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.zookeeper.server.util.AdHash;
 
 /**
  * a simple wrapper to ConcurrentHashMap that recalculates a digest after
  * each mutation.
+ * chm的简单包装层
  */
 public class NodeHashMapImpl implements NodeHashMap {
 
-    private final ConcurrentHashMap<String, DataNode> nodes = new ConcurrentHashMap<String, DataNode>();
-
+    private final ConcurrentHashMap<String, DataNode> nodes = new ConcurrentHashMap<>();
+    //
     private AdHash hash = new AdHash();
+    //
     private final DigestCalculator digestCalculator;
 
     public NodeHashMapImpl(DigestCalculator digestCalculator) {

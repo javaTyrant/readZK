@@ -76,6 +76,8 @@ public class LearnerHandler extends ZooKeeperThread {
     final LearnerMaster learnerMaster;
 
     /**
+     * 接收下一次ack的deadline.
+     * 一旦deadline变成过去的世界,这个learner
      * Deadline for receiving the next ack. If we are bootstrapping then
      * it's based on the initLimit, if we are done bootstrapping it's based
      * on the syncLimit. Once the deadline is past this learner should
@@ -105,11 +107,14 @@ public class LearnerHandler extends ZooKeeperThread {
 
     /**
      * The packets to be sent to the learner
-     * 要发送给learner的数据包
+     * 要发送给learner的数据包,run方法里取出来发送吧,盲猜一把
      */
     final LinkedBlockingQueue<QuorumPacket> queuedPackets = new LinkedBlockingQueue<>();
+
     private final AtomicLong queuedPacketsSize = new AtomicLong();
+
     protected final AtomicLong packetsReceived = new AtomicLong();
+
     protected final AtomicLong packetsSent = new AtomicLong();
 
     protected final AtomicLong requestsReceived = new AtomicLong();
@@ -389,6 +394,7 @@ public class LearnerHandler extends ZooKeeperThread {
         }
     }
 
+    //这个方法写的相当丑陋,用个枚举值封装多好
     public static String packetToString(QuorumPacket p) {
         String type;
         String mess = null;
@@ -478,13 +484,15 @@ public class LearnerHandler extends ZooKeeperThread {
     @Override
     public void run() {
         try {
+            //
             learnerMaster.addLearnerHandler(this);
+            //
             tickOfNextAckDeadline = learnerMaster.getTickOfInitialAckDeadline();
             //
             ia = BinaryInputArchive.getArchive(bufferedInput);
             //装饰器,sock.getOutputStream才是真正的执行类
             bufferedOutput = new BufferedOutputStream(sock.getOutputStream());
-            //
+            //oa和bufferedOutput
             oa = BinaryOutputArchive.getArchive(bufferedOutput);
             //
             QuorumPacket qp = new QuorumPacket();
@@ -571,6 +579,7 @@ public class LearnerHandler extends ZooKeeperThread {
                 ss = new StateSummary(bbepoch.getInt(), ackEpochPacket.getZxid());
                 learnerMaster.waitForEpochAck(this.getSid(), ss);
             }
+            //
             peerLastZxid = ss.getLastZxid();
 
             // Take any necessary action if we need to send TRUNC or DIFF
@@ -582,7 +591,7 @@ public class LearnerHandler extends ZooKeeperThread {
             // are counted as concurrent syncs though
             boolean exemptFromThrottle = getLearnerType() != LearnerType.OBSERVER;
             /* if we are not truncating or sending a diff just send a snapshot */
-            if (needSnap) {
+            if (needSnap) {//全量同步
                 syncThrottler = learnerMaster.getLearnerSnapSyncThrottler();
                 syncThrottler.beginSync(exemptFromThrottle);
                 try {
@@ -599,9 +608,11 @@ public class LearnerHandler extends ZooKeeperThread {
                             Long.toHexString(zxidToSend),
                             syncThrottler.getSyncInProgress(),
                             exemptFromThrottle ? "exempt" : "not exempt");
-                    // Dump data to peer
+                    // Dump data to peer 为peer导出数据
                     learnerMaster.getZKDatabase().serializeSnapshot(oa);
+                    //重点关注下oa
                     oa.writeString("BenWasHere", "signature");
+                    //此时全量的数据应该在bufferedOutput里吧
                     bufferedOutput.flush();
                 } finally {
                     ServerMetrics.getMetrics().SNAP_COUNT.add(1);
@@ -815,12 +826,16 @@ public class LearnerHandler extends ZooKeeperThread {
         boolean needSnap = true;
         ZKDatabase db = learnerMaster.getZKDatabase();
         boolean txnLogSyncEnabled = db.isTxnLogSyncEnabled();
+        //读写锁
         ReentrantReadWriteLock lock = db.getLogLock();
+        //
         ReadLock rl = lock.readLock();
         try {
             rl.lock();
+            //获取两个边界的committed日志
             long maxCommittedLog = db.getmaxCommittedLog();
             long minCommittedLog = db.getminCommittedLog();
+            //
             long lastProcessedZxid = db.getDataTreeLastProcessedZxid();
 
             LOG.info("Synchronizing with Learner sid: {} maxCommittedLog=0x{}"
@@ -849,7 +864,7 @@ public class LearnerHandler extends ZooKeeperThread {
 
             /*
              * Here are the cases that we want to handle
-             *
+             * 注意这几种情况
              * 1. Force sending snapshot (for testing purpose)
              * 2. Peer and learnerMaster is already sync, send empty diff
              * 3. Follower has txn that we haven't seen. This may be old leader
@@ -866,7 +881,7 @@ public class LearnerHandler extends ZooKeeperThread {
             if (forceSnapSync) {
                 // Force learnerMaster to use snapshot to sync with follower
                 LOG.warn("Forcing snapshot sync - should not see this in production");
-            } else if (lastProcessedZxid == peerLastZxid) {
+            } else if (lastProcessedZxid == peerLastZxid) {//两边的zixd相等
                 // Follower is already sync with us, send empty diff
                 LOG.info("Sending DIFF zxid=0x" + Long.toHexString(peerLastZxid) + " for peer sid: " + getSid());
                 queueOpPacket(Leader.DIFF, peerLastZxid);
@@ -1084,6 +1099,7 @@ public class LearnerHandler extends ZooKeeperThread {
 
     /**
      * ping calls from the learnerMaster to the peers
+     * 其实ping只是把请求放入队列只有这个操作
      */
     public void ping() {
         // If learner hasn't sync properly yet, don't send ping packet
@@ -1115,6 +1131,7 @@ public class LearnerHandler extends ZooKeeperThread {
         queuePacket(packet);
     }
 
+    //请求入队列,Leader.COMMIT...
     void queuePacket(QuorumPacket p) {
         //加入队列
         queuedPackets.add(p);
@@ -1135,7 +1152,9 @@ public class LearnerHandler extends ZooKeeperThread {
         return size;
     }
 
+    //如果存活且当前的时间小于下一次的deadline
     public boolean synced() {
+        //isAlive是线程的方法
         return isAlive() && learnerMaster.getCurrentTick() <= tickOfNextAckDeadline;
     }
 

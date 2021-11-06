@@ -110,7 +110,7 @@ public class WorkerService {
      * this thread.
      */
     public void schedule(WorkRequest workRequest, long id) {
-        if (stopped) {
+        if (stopped) {//如果被停止需要做一些清理工作
             workRequest.cleanup();
             return;
         }

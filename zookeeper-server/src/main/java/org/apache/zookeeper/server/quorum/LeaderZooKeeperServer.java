@@ -21,6 +21,7 @@ package org.apache.zookeeper.server.quorum;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import javax.management.JMException;
+
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.jmx.MBeanRegistry;
 import org.apache.zookeeper.metrics.MetricsContext;
@@ -36,7 +37,6 @@ import org.apache.zookeeper.server.ZKDatabase;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 
 /**
- *
  * Just like the standard ZooKeeperServer. We just replace the request
  * processors: PrepRequestProcessor -&gt; ProposalRequestProcessor -&gt;
  * CommitProcessor -&gt; Leader.ToBeAppliedRequestProcessor -&gt;
@@ -65,9 +65,11 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     protected void setupRequestProcessors() {
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
         RequestProcessor toBeAppliedProcessor = new Leader.ToBeAppliedRequestProcessor(finalProcessor, getLeader());
-        commitProcessor = new CommitProcessor(toBeAppliedProcessor, Long.toString(getServerId()), false, getZooKeeperServerListener());
+        commitProcessor =
+                new CommitProcessor(toBeAppliedProcessor, Long.toString(getServerId()), false, getZooKeeperServerListener());
         commitProcessor.start();
-        ProposalRequestProcessor proposalProcessor = new ProposalRequestProcessor(this, commitProcessor);
+        ProposalRequestProcessor proposalProcessor =
+                new ProposalRequestProcessor(this, commitProcessor);
         proposalProcessor.initialize();
         prepRequestProcessor = new PrepRequestProcessor(this, proposalProcessor);
         prepRequestProcessor.start();
@@ -78,10 +80,10 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
 
     private synchronized void setupContainerManager() {
         containerManager = new ContainerManager(
-            getZKDatabase(),
-            prepRequestProcessor,
-            Integer.getInteger("znode.container.checkIntervalMs", (int) TimeUnit.MINUTES.toMillis(1)),
-            Integer.getInteger("znode.container.maxPerMinute", 10000));
+                getZKDatabase(),
+                prepRequestProcessor,
+                Integer.getInteger("znode.container.checkIntervalMs", (int) TimeUnit.MINUTES.toMillis(1)),
+                Integer.getInteger("znode.container.maxPerMinute", 10000));
     }
 
     @Override
@@ -140,12 +142,12 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     @Override
     public void createSessionTracker() {
         sessionTracker = new LeaderSessionTracker(
-            this,
-            getZKDatabase().getSessionWithTimeOuts(),
-            tickTime,
-            self.getId(),
-            self.areLocalSessionsEnabled(),
-            getZooKeeperServerListener());
+                this,
+                getZKDatabase().getSessionWithTimeOuts(),
+                tickTime,
+                self.getId(),
+                self.areLocalSessionsEnabled(),
+                getZooKeeperServerListener());
     }
 
     public boolean touch(long sess, int to) {

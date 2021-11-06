@@ -73,7 +73,7 @@ public class QuorumPeerMain {
     private static final Logger LOG = LoggerFactory.getLogger(QuorumPeerMain.class);
 
     private static final String USAGE = "Usage: QuorumPeerMain configfile";
-
+    //仲裁协议类
     protected QuorumPeer quorumPeer;
 
     /**
@@ -167,6 +167,7 @@ public class QuorumPeerMain {
                 secureCnxnFactory = ServerCnxnFactory.createFactory();
                 secureCnxnFactory.configure(config.getSecureClientPortAddress(), config.getMaxClientCnxns(), config.getClientPortListenBacklog(), true);
             }
+            //设置相关信息,zxid这种
             setPeer(config, cnxnFactory, secureCnxnFactory);
             //启动quorumPeer的run方法
             quorumPeer.start();

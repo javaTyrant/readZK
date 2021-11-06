@@ -36,14 +36,15 @@ public class QuorumMaj implements QuorumVerifier {
     //所有的成员
     private Map<Long, QuorumServer> allMembers = new HashMap<>();
     //投票的成员
-    private Map<Long, QuorumServer> votingMembers = new HashMap<>();
+    private final Map<Long, QuorumServer> votingMembers = new HashMap<>();
     //观察的成员
-    private Map<Long, QuorumServer> observingMembers = new HashMap<>();
+    private final Map<Long, QuorumServer> observingMembers = new HashMap<>();
     //版本
     private long version = 0;
     //过半机制
-    private int half;
+    private final int half;
 
+    //为什么返回42呢,为什么要重新这两个方法呢
     public int hashCode() {
         assert false : "hashCode not designed";
         return 42; // any arbitrary constant will do

@@ -22,6 +22,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
 
 /**
  * 选票的结构:
+ *      作用呢
  *      int version;
  *
  *      long id;

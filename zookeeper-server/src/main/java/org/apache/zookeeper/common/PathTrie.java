@@ -224,6 +224,7 @@
                      child = new TrieNode(parent, part);
                      parent.addChild(part, child);
                  }
+                 //指针移动,经典的前缀树写法
                  parent = child;
              }
              parent.setProperty(true);
@@ -238,9 +239,11 @@
       * @param path the path to be deleted
       */
      public void deletePath(final String path) {
+         //validate path
          Objects.requireNonNull(path, "Path cannot be null");
-
+         //按/截取path
          final String[] pathComponents = StringUtils.split(path, '/');
+         //validate again
          if (pathComponents.length == 0) {
              throw new IllegalArgumentException("Invalid path: " + path);
          }

@@ -96,15 +96,16 @@ public class DataTree {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataTree.class);
 
+    //速率日志
     private final RateLogger RATE_LOGGER = new RateLogger(LOG, 15 * 60 * 1000);
 
     /**
      * This map provides a fast lookup to the datanodes. The tree is the
      * source of truth and is where all the locking occurs
-     * 这个map提供了对这些datanote的快速查询
+     * 这个map提供了对这些datanote的快速查询,这个类才是真正的数据节点吗
      */
     private final NodeHashMap nodes;
-    //data观察者
+    //data观察者,观察者模式
     private IWatchManager dataWatches;
     //child观察者
     private IWatchManager childWatches;
@@ -116,11 +117,13 @@ public class DataTree {
     private final AtomicLong nodeDataSize = new AtomicLong(0);
     //tree的根节点
     /**
+     * 根节点
      * the root of zookeeper tree
      */
     private static final String rootZookeeper = "/";
 
     /**
+     * 充当zk节点的管理者和状态,下面几个string都是用作map的key
      * the zookeeper nodes that acts as the management and status node
      **/
     private static final String procZookeeper = Quotas.procZookeeper;
@@ -153,6 +156,7 @@ public class DataTree {
     private static final String configChildZookeeper = configZookeeper.substring(procZookeeper.length() + 1);
 
     /**
+     * 前缀树的真实使用场景,真正的保存数据的地方
      * the path trie that keeps track of the quota nodes in this datatree
      */
     private final PathTrie pTrie = new PathTrie();
@@ -163,20 +167,24 @@ public class DataTree {
     public static final int STAT_OVERHEAD_BYTES = (6 * 8) + (5 * 4);
 
     /**
+     * 保存一个session的临时节点,下面的几个容器都用了ConcurrentHashMap.
      * This hashtable lists the paths of the ephemeral nodes of a session.
      */
     private final Map<Long, HashSet<String>> ephemerals = new ConcurrentHashMap<>();
 
     /**
+     * 所有容器节点的路径
      * This set contains the paths of all container nodes
      */
     private final Set<String> containers = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     /**
+     * ttlnodes
      * This set contains the paths of all ttl nodes
      */
     private final Set<String> ttls = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
+    //acl缓存的引用计数,
     private final ReferenceCountedACLCache aclCache = new ReferenceCountedACLCache();
 
     // The maximum number of tree digests that we will keep in our history
@@ -201,6 +209,7 @@ public class DataTree {
 
     private final DigestCalculator digestCalculator;
 
+    //获取sessionId关联的临时节点
     @SuppressWarnings("unchecked")
     public Set<String> getEphemerals(long sessionId) {
         HashSet<String> retv = ephemerals.get(sessionId);
@@ -437,7 +446,7 @@ public class DataTree {
      * @param ephemeralOwner the session id that owns this node. -1 indicates this is not
      *                       an ephemeral node.
      * @param zxid           Transaction ID
-     * @param time 过期时间
+     * @param time           过期时间
      * @throws NodeExistsException
      * @throws NoNodeException
      */
@@ -462,7 +471,9 @@ public class DataTree {
     public void createNode(final String path, byte[] data, List<ACL> acl, long ephemeralOwner, int parentCVersion, long zxid, long time, Stat outputStat) throws KeeperException.NoNodeException, KeeperException.NodeExistsException {
         int lastSlash = path.lastIndexOf('/');
         String parentName = path.substring(0, lastSlash);
+        //获取子节点的名字
         String childName = path.substring(lastSlash + 1);
+        //
         StatPersisted stat = new StatPersisted();
         stat.setCtime(time);
         stat.setMtime(time);
@@ -472,14 +483,17 @@ public class DataTree {
         stat.setVersion(0);
         stat.setAversion(0);
         stat.setEphemeralOwner(ephemeralOwner);
+        //获取父节点
         DataNode parent = nodes.get(parentName);
         if (parent == null) {
             throw new KeeperException.NoNodeException();
         }
+        //只需要对parent加锁
         synchronized (parent) {
+            // 什么是fuzzy snapshot sync
             // Add the ACL to ACL cache first, to avoid the ACL not being
             // created race condition during fuzzy snapshot sync.
-            //
+            // 注意这边的实现细节.
             // This is the simplest fix, which may add ACL reference count
             // again if it's already counted in in the ACL map of fuzzy
             // snapshot, which might also happen for deleteNode txn, but
@@ -494,7 +508,7 @@ public class DataTree {
             if (children.contains(childName)) {
                 throw new KeeperException.NodeExistsException();
             }
-
+            //预改变,设计思路何在呢?
             nodes.preChange(parentName, parent);
             if (parentCVersion == -1) {
                 parentCVersion = parent.stat.getCversion();
@@ -509,11 +523,18 @@ public class DataTree {
                 parent.stat.setCversion(parentCVersion);
                 parent.stat.setPzxid(zxid);
             }
+            //构造子节点
             DataNode child = new DataNode(data, longval, stat);
+            //添加子节点
             parent.addChild(childName);
+            //后改变
             nodes.postChange(parentName, parent);
+            //
             nodeDataSize.addAndGet(getNodeSize(path, child.data));
+            //添加,不管是正式节点还是临时节点,都往里面放,所以,临时节点过期了,肯定还会删除一下
+            //看一下删除被调用的地方
             nodes.put(path, child);
+            //临时节点
             EphemeralType ephemeralType = EphemeralType.get(ephemeralOwner);
             if (ephemeralType == EphemeralType.CONTAINER) {
                 containers.add(path);
@@ -522,7 +543,7 @@ public class DataTree {
             } else if (ephemeralOwner != 0) {
                 HashSet<String> list = ephemerals.get(ephemeralOwner);
                 if (list == null) {
-                    list = new HashSet<String>();
+                    list = new HashSet<>();
                     ephemerals.put(ephemeralOwner, list);
                 }
                 synchronized (list) {
@@ -537,8 +558,11 @@ public class DataTree {
         if (parentName.startsWith(quotaZookeeper)) {
             // now check if its the limit node
             if (Quotas.limitNode.equals(childName)) {
+                //只有childName是"zookeeper_limits",才会添加到pTrie里
+                //这个设计目的是什么呢?
                 // this is the limit node
                 // get the parent and add it to the trie
+                // 往前缀树里添加
                 pTrie.addPath(parentName.substring(quotaZookeeper.length()));
             }
             if (Quotas.statNode.equals(childName)) {
@@ -553,7 +577,9 @@ public class DataTree {
             updateCountBytes(lastPrefix, bytes, 1);
         }
         updateWriteStat(path, bytes);
+        //通知
         dataWatches.triggerWatch(path, Event.EventType.NodeCreated);
+        //通知
         childWatches.triggerWatch(parentName.equals("") ? "/" : parentName, Event.EventType.NodeChildrenChanged);
     }
 
@@ -1343,7 +1369,9 @@ public class DataTree {
         serializeNodes(oa);
     }
 
+    //具体的反序列化过程,要吃透哦
     public void deserialize(InputArchive ia, String tag) throws IOException {
+        //ReferenceCountedACLCache先反序列化一波
         aclCache.deserialize(ia);
         nodes.clear();
         pTrie.clear();
@@ -1379,7 +1407,7 @@ public class DataTree {
                 } else if (eowner != 0) {
                     HashSet<String> list = ephemerals.get(eowner);
                     if (list == null) {
-                        list = new HashSet<String>();
+                        list = new HashSet<>();
                         ephemerals.put(eowner, list);
                     }
                     list.add(path);

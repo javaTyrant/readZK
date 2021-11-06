@@ -45,28 +45,32 @@ public class FLEOutOfElectionTest {
     @Before
     public void setUp() throws Exception {
         File tmpdir = ClientBase.createTmpDir();
-        Map<Long, QuorumServer> peers = new HashMap<Long, QuorumServer>();
+        //设置五个QuorumServer
+        Map<Long, QuorumServer> peers = new HashMap<>();
         for (int i = 0; i < 5; i++) {
-            peers.put(Long.valueOf(i), new QuorumServer(Long.valueOf(i), new InetSocketAddress("127.0.0.1", PortAssignment.unique())));
+            peers.put((long) i, new QuorumServer(i, new InetSocketAddress("127.0.0.1", PortAssignment.unique())));
         }
+        //
         QuorumPeer peer = new QuorumPeer(peers, tmpdir, tmpdir, PortAssignment.unique(), 3, 3, 1000, 2, 2, 2);
+        //构建好选举算法
         fle = new FastLeaderElection(peer, peer.createCnxnManager());
     }
 
     @Test
     public void testIgnoringZxidElectionEpoch() {
-        Map<Long, Vote> votes = new HashMap<Long, Vote>();
+        Map<Long, Vote> votes = new HashMap<>();
         votes.put(0L, new Vote(0x1, 4L, ZxidUtils.makeZxid(1, 1), 1, 2, ServerState.FOLLOWING));
         votes.put(1L, new Vote(0x1, 4L, ZxidUtils.makeZxid(1, 2), 1, 2, ServerState.FOLLOWING));
         votes.put(3L, new Vote(0x1, 4L, ZxidUtils.makeZxid(2, 1), 2, 2, ServerState.FOLLOWING));
         votes.put(4L, new Vote(0x1, 4L, ZxidUtils.makeZxid(2, 1), 2, 2, ServerState.LEADING));
-
-        assertTrue(fle.getVoteTracker(votes, new Vote(4L, ZxidUtils.makeZxid(2, 1), 2, 2, ServerState.FOLLOWING)).hasAllQuorums());
+        //获取选票跟踪器
+        SyncedLearnerTracker voteTracker = fle.getVoteTracker(votes, new Vote(4L, ZxidUtils.makeZxid(2, 1), 2, 2, ServerState.FOLLOWING));
+        assertTrue(voteTracker.hasAllQuorums());
     }
 
     @Test
     public void testElectionWIthDifferentVersion() {
-        Map<Long, Vote> votes = new HashMap<Long, Vote>();
+        Map<Long, Vote> votes = new HashMap<>();
         //初始化四张选票
         votes.put(0L, new Vote(0x1, 4L, ZxidUtils.makeZxid(1, 1), 1, 1, ServerState.FOLLOWING));
         votes.put(1L, new Vote(0x1, 4L, ZxidUtils.makeZxid(1, 1), 1, 1, ServerState.FOLLOWING));
@@ -78,7 +82,7 @@ public class FLEOutOfElectionTest {
 
     @Test
     public void testLookingNormal() {
-        Map<Long, Vote> votes = new HashMap<Long, Vote>();
+        Map<Long, Vote> votes = new HashMap<>();
         votes.put(0L, new Vote(4L, ZxidUtils.makeZxid(2, 1), 1, 1, ServerState.LOOKING));
         votes.put(1L, new Vote(4L, ZxidUtils.makeZxid(2, 1), 1, 1, ServerState.LOOKING));
         votes.put(3L, new Vote(4L, ZxidUtils.makeZxid(2, 1), 1, 1, ServerState.LOOKING));
@@ -89,7 +93,7 @@ public class FLEOutOfElectionTest {
 
     @Test
     public void testLookingDiffRounds() {
-        HashMap<Long, Vote> votes = new HashMap<Long, Vote>();
+        HashMap<Long, Vote> votes = new HashMap<>();
         votes.put(0L, new Vote(4L, ZxidUtils.makeZxid(1, 1), 1, 1, ServerState.LOOKING));
         votes.put(1L, new Vote(4L, ZxidUtils.makeZxid(2, 1), 2, 2, ServerState.LOOKING));
         votes.put(3L, new Vote(4L, ZxidUtils.makeZxid(2, 1), 3, 2, ServerState.LOOKING));
@@ -100,7 +104,7 @@ public class FLEOutOfElectionTest {
 
     @Test
     public void testOutofElection() {
-        HashMap<Long, Vote> outofelection = new HashMap<Long, Vote>();
+        HashMap<Long, Vote> outofelection = new HashMap<>();
 
         outofelection.put(1L, new Vote(0x0, 5, ZxidUtils.makeZxid(15, 0), 0xa, 0x17, ServerState.FOLLOWING));
         outofelection.put(2L, new Vote(0x0, 5, ZxidUtils.makeZxid(15, 0), 0xa, 0x17, ServerState.FOLLOWING));

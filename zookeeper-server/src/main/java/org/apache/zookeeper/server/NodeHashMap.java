@@ -82,7 +82,7 @@ public interface NodeHashMap {
     /**
      * Called before we made the change on the node, which will clear
      * the digest associated with it.
-     *
+     * 在我们改变一个节点之前调用,
      * @param path the path being changed
      * @param node the node associated with the path
      */

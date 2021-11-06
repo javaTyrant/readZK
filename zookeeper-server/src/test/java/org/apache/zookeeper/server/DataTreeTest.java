@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -34,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.BinaryOutputArchive;
 import org.apache.jute.Record;
@@ -98,7 +100,7 @@ public class DataTreeTest extends ZKTestCase {
     private void createEphemeralNode(long session, final DataTree dataTree, int count) throws NoNodeException, NodeExistsException {
         for (int i = 0; i < count; i++) {
             dataTree.createNode("/test" + i, new byte[0], null, session + i, dataTree.getNode("/").stat.getCversion()
-                                                                                     + 1, 1, 1);
+                    + 1, 1, 1);
         }
     }
 
@@ -138,14 +140,14 @@ public class DataTreeTest extends ZKTestCase {
             int newCversion = zk.stat.getCversion();
             long newPzxid = zk.stat.getPzxid();
             assertTrue("<cversion, pzxid> verification failed. Expected: <"
-                                      + (prevCversion + 1)
-                                      + ", "
-                                      + (prevPzxid + 1)
-                                      + ">, found: <"
-                                      + newCversion
-                                      + ", "
-                                      + newPzxid
-                                      + ">", (newCversion == prevCversion + 1 && newPzxid == prevPzxid + 1));
+                    + (prevCversion + 1)
+                    + ", "
+                    + (prevPzxid + 1)
+                    + ">, found: <"
+                    + newCversion
+                    + ", "
+                    + newPzxid
+                    + ">", (newCversion == prevCversion + 1 && newPzxid == prevPzxid + 1));
             assertNotEquals(digestBefore, dt.getTreeDigest());
         } finally {
             ZooKeeperServer.setDigestEnabled(false);
@@ -164,14 +166,14 @@ public class DataTreeTest extends ZKTestCase {
         int newCversion = parent.stat.getCversion();
         long newPzxid = parent.stat.getPzxid();
         assertTrue("<cversion, pzxid> verification failed. Expected: <"
-                                  + currentCversion
-                                  + ", "
-                                  + currentPzxid
-                                  + ">, found: <"
-                                  + newCversion
-                                  + ", "
-                                  + newPzxid
-                                  + ">", (newCversion >= currentCversion && newPzxid >= currentPzxid));
+                + currentCversion
+                + ", "
+                + currentPzxid
+                + ">, found: <"
+                + newCversion
+                + ", "
+                + newPzxid
+                + ">", (newCversion >= currentCversion && newPzxid >= currentPzxid));
     }
 
     @Test
@@ -476,6 +478,17 @@ public class DataTreeTest extends ZKTestCase {
         } finally {
             ZooKeeperServer.setDigestEnabled(false);
         }
+    }
+
+    @Test
+    public void testCreateNode() throws NodeExistsException, NoNodeException {
+        DataTree dt = new DataTree();
+        dt.createNode("/lu", new byte[0], null, -1, 1, 1, 1);
+        dt.createNode("/lu/test", new byte[0], null, -1, 1, 1, 1);
+        dt.createNode("/she", new byte[0], null, -1, 1, 1, 1);
+
+        System.out.println(dt.getNode("lu"));
+        System.out.println(dt.getNode("she"));
     }
 
 }

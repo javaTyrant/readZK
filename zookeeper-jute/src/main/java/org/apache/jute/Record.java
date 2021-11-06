@@ -19,13 +19,28 @@
 package org.apache.jute;
 
 import java.io.IOException;
+
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
+ * 序列化反序列化节点
  * Interface that is implemented by generated classes.
  */
 @InterfaceAudience.Public
 public interface Record {
+    /**
+     *
+     * @param archive out
+     * @param tag tag?
+     * @throws IOException
+     */
     void serialize(OutputArchive archive, String tag) throws IOException;
+
+    /**
+     *
+     * @param archive in
+     * @param tag 看看用到的地方,这个tag标签是做什么用的
+     * @throws IOException
+     */
     void deserialize(InputArchive archive, String tag) throws IOException;
 }

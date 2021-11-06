@@ -49,7 +49,7 @@ public class FLEBackwardElectionRoundTest extends ZKTestCase {
     public void setUp() throws Exception {
         count = 3;
 
-        peers = new HashMap<Long, QuorumServer>(count);
+        peers = new HashMap<>(count);
         tmpdir = new File[count];
         port = new int[count];
         cnxManagers = new QuorumCnxManager[count - 1];
@@ -80,7 +80,7 @@ public class FLEBackwardElectionRoundTest extends ZKTestCase {
      * https://issues.apache.org/jira/browse/ZOOKEEPER-1514
      *
      *
-     * @throws Exception
+     * @throws Exception Exception
      */
 
     @Test
@@ -88,14 +88,12 @@ public class FLEBackwardElectionRoundTest extends ZKTestCase {
         LOG.info("TestLE: {}, {}", getTestName(), count);
         for (int i = 0; i < count; i++) {
             int clientport = PortAssignment.unique();
-            peers.put(Long.valueOf(i), new QuorumServer(i, new InetSocketAddress(clientport), new InetSocketAddress(PortAssignment.unique())));
+            peers.put((long) i, new QuorumServer(i, new InetSocketAddress(clientport), new InetSocketAddress(PortAssignment.unique())));
             tmpdir[i] = ClientBase.createTmpDir();
             port[i] = clientport;
         }
-
         ByteBuffer initialMsg0 = getMsg();
         ByteBuffer initialMsg1 = getMsg();
-
         /*
          * Start server 0
          */

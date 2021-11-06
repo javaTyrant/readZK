@@ -37,6 +37,7 @@ import org.apache.zookeeper.txn.TxnHeader;
 
 /**
  * This class has the control logic for the Follower.
+ * 继承了Learner
  */
 public class Follower extends Learner {
 
@@ -156,8 +157,9 @@ public class Follower extends Learner {
 
     /**
      * Examine the packet received in qp and dispatch based on its contents.
+     * 可以写的更好
      *
-     * @param qp 选举数据包
+     * @param qp 数据包
      * @throws IOException io异常
      */
     protected void processPacket(QuorumPacket qp) throws Exception {

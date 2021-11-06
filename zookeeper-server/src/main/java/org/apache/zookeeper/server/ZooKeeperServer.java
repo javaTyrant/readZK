@@ -115,7 +115,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     // Add a enable/disable option for now, we should remove this one when
     // this feature is confirmed to be stable
     public static final String CLOSE_SESSION_TXN_ENABLED = "zookeeper.closeSessionTxn.enabled";
-    private static boolean closeSessionTxnEnabled = true;
+    private static boolean closeSessionTxnEnabled;
 
     static {
         LOG = LoggerFactory.getLogger(ZooKeeperServer.class);
@@ -171,6 +171,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     private FileTxnSnapLog txnLogFactory = null;
     private ZKDatabase zkDb;
     private ResponseCache readResponseCache;
+    //h for histroy?
     private final AtomicLong hzxid = new AtomicLong(0);
     public static final Exception ok = new Exception("No prob");
     protected RequestProcessor firstProcessor;
@@ -656,24 +657,27 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     //zkserver启动的流程
     public synchronized void startup() {
+        //session tracker
         if (sessionTracker == null) {
             createSessionTracker();
         }
+        //启动sessionTracker
         startSessionTracker();
+        //启动请求处理器
         setupRequestProcessors();
-
+        //启动请求限流器
         startRequestThrottler();
-
+        //注册jmx
         registerJMX();
-
+        //
         startJvmPauseMonitor();
-
+        //
         registerMetrics();
-
+        //
         setState(State.RUNNING);
-
+        //
         requestPathMetricsCollector.start();
-
+        //
         localSessionEnabled = sessionTracker.isLocalSessionsEnabled();
         //有哪些会被通知呢?找找哪里wait了
         notifyAll();
@@ -1686,6 +1690,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         cnxn.sendResponse(replyHeader, record, "response");
     }
 
+    // 入口
     // entry point for quorum/Learner.java
     public ProcessTxnResult processTxn(TxnHeader hdr, Record txn) {
         processTxnForSessionEvents(null, hdr, txn);

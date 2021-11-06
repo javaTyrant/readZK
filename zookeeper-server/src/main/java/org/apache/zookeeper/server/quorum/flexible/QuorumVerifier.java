@@ -34,6 +34,11 @@ public interface QuorumVerifier {
 
     long getWeight(long id);
 
+    /**
+     * Verifies if a set is a majority. Assumes that ackSet contains acks only
+     * from votingMembers,ack.size > half
+     * 判断一个集合是否是大多数.
+     */
     boolean containsQuorum(Set<Long> set);
 
     long getVersion();

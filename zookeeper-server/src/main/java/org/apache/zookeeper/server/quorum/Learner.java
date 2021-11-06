@@ -60,6 +60,7 @@ import org.slf4j.LoggerFactory;
  * This class is the superclass of two of the three main actors in a ZK
  * ensemble: Followers and Observers. Both Followers and Observers share
  * a good deal of code which is moved into Peer to avoid duplication.
+ * 注意观察下有哪些子类.
  */
 public class Learner {
 
@@ -84,7 +85,7 @@ public class Learner {
     /**
      * Socket getter
      *
-     * @return
+     * @return socket
      */
     public Socket getSocket() {
         return sock;
@@ -98,10 +99,11 @@ public class Learner {
      * the protocol version of the leader
      */
     protected int leaderProtocolVersion = 0x01;
-
+    //
     private static final int BUFFERED_MESSAGE_SIZE = 10;
+    //
     protected final MessageTracker messageTracker = new MessageTracker(BUFFERED_MESSAGE_SIZE);
-
+    //
     protected static final Logger LOG = LoggerFactory.getLogger(Learner.class);
 
     /**
@@ -109,7 +111,7 @@ public class Learner {
      * Learner tries to connect again.
      */
     private static final int leaderConnectDelayDuringRetryMs = Integer.getInteger("zookeeper.leaderConnectDelayDuringRetryMs", 100);
-
+    //
     private static final boolean nodelay = System.getProperty("follower.nodelay", "true").equals("true");
 
     static {
@@ -153,6 +155,7 @@ public class Learner {
 
     /**
      * write a packet to the leader
+     * 把packet写给leader
      *
      * @param pp the proposal packet to be sent to the leader
      * @throws IOException
@@ -171,6 +174,7 @@ public class Learner {
 
     /**
      * read a packet from the leader
+     * 读leader的packet
      *
      * @param pp the packet to be instantiated
      * @throws IOException
@@ -217,6 +221,8 @@ public class Learner {
 
     /**
      * Returns the address of the node we think is the leader.
+     * 返回我们认为是leader的服务器的地址
+     * 凭借什么呢?
      */
     protected QuorumServer findLeader() {
         QuorumServer leaderServer = null;
@@ -321,7 +327,8 @@ public class Learner {
         }
 
         self.authLearner.authenticate(sock, hostname);
-
+        //和leader连接的时候,会给InputArchive赋值.所以jute的工作流程要搞清楚
+        //这个inputstream的内容是什么呢,要看leader写入了什么,会分情况吗
         leaderIs = BinaryInputArchive.getArchive(new BufferedInputStream(sock.getInputStream()));
         bufferedOutput = new BufferedOutputStream(sock.getOutputStream());
         leaderOs = BinaryOutputArchive.getArchive(bufferedOutput);
@@ -342,7 +349,7 @@ public class Learner {
      * Once connected to the leader or learner master, perform the handshake
      * protocol to establish a following / observing connection.
      *
-     * @param pktType
+     * @param pktType pktType
      * @return the zxid the Leader sends for synchronization purposes.
      * @throws IOException
      */
@@ -405,10 +412,11 @@ public class Learner {
     /**
      * Finally, synchronize our history with the Leader (if Follower)
      * or the LearnerMaster (if Observer).
+     * 最后,我们用我们的历史和leader同步eee
      *
-     * @param newLeaderZxid
-     * @throws IOException
-     * @throws InterruptedException
+     * @param newLeaderZxid newLeaderZxid
+     * @throws IOException          io异常
+     * @throws InterruptedException 打断异常
      */
     protected void syncWithLeader(long newLeaderZxid) throws Exception {
         QuorumPacket ack = new QuorumPacket(Leader.ACK, 0, null, null);
@@ -425,16 +433,18 @@ public class Learner {
         Deque<Long> packetsCommitted = new ArrayDeque<>();
         Deque<PacketInFlight> packetsNotCommitted = new ArrayDeque<>();
         synchronized (zk) {
+            //分别处理三种同步模式
             if (qp.getType() == Leader.DIFF) {
                 LOG.info("Getting a diff from the leader 0x{}", Long.toHexString(qp.getZxid()));
                 self.setSyncMode(QuorumPeer.SyncMode.DIFF);
                 snapshotNeeded = false;
-            } else if (qp.getType() == Leader.SNAP) {
+            } else if (qp.getType() == Leader.SNAP) {//snap模式
                 self.setSyncMode(QuorumPeer.SyncMode.SNAP);
                 LOG.info("Getting a snapshot from leader 0x" + Long.toHexString(qp.getZxid()));
                 // The leader is going to dump the database
                 // db is clear as part of deserializeSnapshot()
-                zk.getZKDatabase().deserializeSnapshot(leaderIs);
+                //leaderIs:InputArchive,这个应该是leader的所有节点吧
+                zk.getZKDatabase().deserializeSnapshot(leaderIs);//反序列化
                 // ZOOKEEPER-2819: overwrite config node content extracted
                 // from leader snapshot with local config, to avoid potential
                 // inconsistency of config node content during rolling restart.
@@ -443,10 +453,12 @@ public class Learner {
                     zk.getZKDatabase().initConfigInZKDatabase(self.getQuorumVerifier());
                 }
                 String signature = leaderIs.readString("signature");
+                //为什么signature是BenWasHere
                 if (!signature.equals("BenWasHere")) {
                     LOG.error("Missing signature. Got " + signature);
                     throw new IOException("Missing signature");
                 }
+                //
                 zk.getZKDatabase().setlastProcessedZxid(qp.getZxid());
 
                 // immediately persist the latest snapshot when there is txn log gap
@@ -468,7 +480,9 @@ public class Learner {
                 System.exit(ExitCode.QUORUM_PACKET_ERROR.getValue());
 
             }
+            //
             zk.getZKDatabase().initConfigInZKDatabase(self.getQuorumVerifier());
+            //创建sessionTracker
             zk.createSessionTracker();
 
             long lastQueued = 0;

@@ -29,5 +29,8 @@ public interface Election {
      */
     Vote lookForLeader() throws InterruptedException;
 
+    /**
+     * 关闭
+     */
     void shutdown();
 }

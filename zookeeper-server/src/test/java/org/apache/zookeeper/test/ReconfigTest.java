@@ -272,8 +272,8 @@ public class ReconfigTest extends ZKTestCase implements DataCallback {
         zkArr = createHandles(qu);
         zkAdminArr = createAdminHandles(qu);
 
-        List<String> leavingServers = new ArrayList<String>();
-        List<String> joiningServers = new ArrayList<String>();
+        List<String> leavingServers = new ArrayList<>();
+        List<String> joiningServers = new ArrayList<>();
 
         int leaderIndex = getLeaderId(qu);
 

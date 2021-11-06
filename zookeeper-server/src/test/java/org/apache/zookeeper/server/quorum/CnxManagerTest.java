@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -45,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
+
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.common.QuorumX509Util;
@@ -72,6 +74,7 @@ public class CnxManagerTest extends ZKTestCase {
     File[] peerTmpdir;
     int[] peerQuorumPort;
     int[] peerClientPort;
+
     @Before
     public void setUp() throws Exception {
 
@@ -84,6 +87,7 @@ public class CnxManagerTest extends ZKTestCase {
         for (int i = 0; i < count; i++) {
             peerQuorumPort[i] = PortAssignment.unique();
             peerClientPort[i] = PortAssignment.unique();
+            //
             peers.put((long) i, new QuorumServer(i, new InetSocketAddress("127.0.0.1", peerQuorumPort[i]), new InetSocketAddress("127.0.0.1", PortAssignment.unique()), new InetSocketAddress("127.0.0.1", peerClientPort[i])));
             peerTmpdir[i] = ClientBase.createTmpDir();
         }
@@ -109,6 +113,7 @@ public class CnxManagerTest extends ZKTestCase {
     class CnxManagerThread extends Thread {
 
         boolean failed;
+
         CnxManagerThread() {
             failed = false;
         }
@@ -161,8 +166,9 @@ public class CnxManagerTest extends ZKTestCase {
         CnxManagerThread thread = new CnxManagerThread();
 
         thread.start();
-
+        //构造peer,peers里保存了
         QuorumPeer peer = new QuorumPeer(peers, peerTmpdir[1], peerTmpdir[1], peerClientPort[1], 3, 1, 1000, 2, 2, 2);
+        //构造cnxnManager
         QuorumCnxManager cnxManager = peer.createCnxnManager();
         QuorumCnxManager.Listener listener = cnxManager.listener;
         if (listener != null) {
@@ -314,8 +320,8 @@ public class CnxManagerTest extends ZKTestCase {
         assertFalse(listener.isAlive());
         assertTrue(errorHappend.get());
         assertFalse(QuorumPeer.class.getSimpleName()
-                                   + " not stopped after "
-                                   + "listener thread death", listener.isAlive());
+                + " not stopped after "
+                + "listener thread death", listener.isAlive());
     }
 
     /**
@@ -449,29 +455,40 @@ public class CnxManagerTest extends ZKTestCase {
 
                     public void setEnabledCipherSuites(String[] suites) {
                     }
+
                     public void setEnabledProtocols(String[] protocols) {
                     }
+
                     public void addHandshakeCompletedListener(HandshakeCompletedListener listener) {
                     }
+
                     public void removeHandshakeCompletedListener(HandshakeCompletedListener listener) {
                     }
+
                     public void setUseClientMode(boolean mode) {
                     }
+
                     public boolean getUseClientMode() {
                         return true;
                     }
+
                     public void setNeedClientAuth(boolean need) {
                     }
+
                     public boolean getNeedClientAuth() {
                         return true;
                     }
+
                     public void setWantClientAuth(boolean want) {
                     }
+
                     public boolean getWantClientAuth() {
                         return true;
                     }
+
                     public void setEnableSessionCreation(boolean flag) {
                     }
+
                     public boolean getEnableSessionCreation() {
                         return true;
                     }
@@ -534,6 +551,7 @@ public class CnxManagerTest extends ZKTestCase {
 
     /**
      * Returns null on success, otw the message assoc with the failure
+     *
      * @throws InterruptedException
      */
     public String verifyThreadCount(ArrayList<QuorumPeer> peerList, long ecnt) throws InterruptedException {
@@ -548,6 +566,7 @@ public class CnxManagerTest extends ZKTestCase {
         }
         return failure;
     }
+
     public String _verifyThreadCount(ArrayList<QuorumPeer> peerList, long ecnt) {
         for (int myid = 0; myid < peerList.size(); myid++) {
             QuorumPeer peer = peerList.get(myid);
@@ -555,9 +574,9 @@ public class CnxManagerTest extends ZKTestCase {
             long cnt = cnxManager.getThreadCount();
             if (cnt != ecnt) {
                 return new Date()
-                       + " Incorrect number of Worker threads for sid=" + myid
-                       + " expected " + ecnt
-                       + " found " + cnt;
+                        + " Incorrect number of Worker threads for sid=" + myid
+                        + " expected " + ecnt
+                        + " found " + cnt;
             }
         }
         return null;
