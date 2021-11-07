@@ -1068,8 +1068,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     private void loadDataBase() {
         try {
             zkDb.loadDataBase();
-            // load the epochs
+            // load the epochs.
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
+            //
             long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
                 currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
@@ -1218,9 +1219,11 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
      * @return the highest zxid for this host
      */
     public long getLastLoggedZxid() {
+        //没有初始化完成
         if (!zkDb.isInitialized()) {
             loadDataBase();
         }
+        //
         return zkDb.getDataTreeLastProcessedZxid();
     }
 

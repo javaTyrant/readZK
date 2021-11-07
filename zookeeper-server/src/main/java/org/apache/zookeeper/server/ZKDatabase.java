@@ -74,8 +74,11 @@ public class ZKDatabase {
      * all these members.
      */
     protected DataTree dataTree;
+    //
     protected ConcurrentHashMap<Long, Integer> sessionsWithTimeouts;
+    //
     protected FileTxnSnapLog snapLog;
+    //
     protected long minCommittedLog, maxCommittedLog;
 
     /**

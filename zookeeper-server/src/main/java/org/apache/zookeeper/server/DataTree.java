@@ -882,6 +882,7 @@ public class DataTree {
 
     }
 
+    //上一个处理的Zxid
     public volatile long lastProcessedZxid = 0;
 
     public ProcessTxnResult processTxn(TxnHeader header, Record txn) {

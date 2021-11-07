@@ -691,7 +691,7 @@ public class FastLeaderElection implements Election {
         for (long sid : self.getCurrentAndNextConfigVoters()) {
             //
             QuorumVerifier qv = self.getQuorumVerifier();
-            //
+            //需要发送的信息.
             ToSend notmsg = new ToSend(
                     proposedLeader,
                     proposedZxid,
@@ -709,7 +709,7 @@ public class FastLeaderElection implements Election {
                         + " (myid), 0x" + Long.toHexString(proposedEpoch)
                         + " (n.peerEpoch)");
             }
-            //放入sendQueue.6721=-无人区奥`
+            //放入sendQueue
             sendqueue.offer(notmsg);
         }
     }
@@ -833,8 +833,11 @@ public class FastLeaderElection implements Election {
                     + " (oldleader), 0x" + Long.toHexString(proposedZxid)
                     + " (oldzxid)");
         }
+        //
         proposedLeader = leader;
+        //
         proposedZxid = zxid;
+        //
         proposedEpoch = epoch;
     }
 
@@ -865,9 +868,11 @@ public class FastLeaderElection implements Election {
      * @return long
      */
     private long getInitId() {
+        //
         if (self.getQuorumVerifier().getVotingMembers().containsKey(self.getId())) {
             return self.getId();
         } else {
+            //
             return Long.MIN_VALUE;
         }
     }
@@ -878,7 +883,9 @@ public class FastLeaderElection implements Election {
      * @return long
      */
     private long getInitLastLoggedZxid() {
+        //参与者
         if (self.getLearnerType() == LearnerType.PARTICIPANT) {
+            //
             return self.getLastLoggedZxid();
         } else {
             return Long.MIN_VALUE;
@@ -968,7 +975,7 @@ public class FastLeaderElection implements Election {
             }
 
             LOG.info("New election. My id =  " + self.getId() + ", proposed zxid=0x" + Long.toHexString(proposedZxid));
-            //发送通知:关于什么的通知呢?
+            //发送通知:关于什么的通知呢?自己的选票结果通知给其他的参与者.
             sendNotifications();
             //
             SyncedLearnerTracker voteSet;
